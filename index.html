@@ -1,0 +1,2516 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cenotvorba</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cenotvorba">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#F5C300">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f4efe6;
+  --surface: #ece6d8;
+  --card: #ffffff;
+  --border: #d4c9b0;
+  --accent: #2a4a1e;
+  --accent2: #3d6b2c;
+  --accent-light: #e8f0e0;
+  --text: #1a1a14;
+  --muted: #7a7060;
+  --wood: #8b5e3c;
+  --shadow: 0 2px 16px rgba(42,74,30,0.08);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'DM Mono',monospace; min-height:100vh; }
+
+/* HEADER */
+header {
+  background:var(--accent); color:white;
+  padding:16px 32px; display:flex; align-items:center; gap:16px;
+  box-shadow:0 4px 20px rgba(42,74,30,0.25);
+  position:sticky; top:0; z-index:200;
+}
+.logo { font-family:'DM Serif Display',serif; font-size:22px; }
+.logo span { color:#a8c878; }
+.header-badge {
+  margin-left:auto; background:rgba(255,255,255,0.12);
+  border:1px solid rgba(255,255,255,0.2); border-radius:20px;
+  padding:4px 14px; font-size:10px; letter-spacing:2px; text-transform:uppercase;
+}
+
+/* LAYOUT */
+.app { display:grid; grid-template-columns:260px 1fr 320px; height:calc(100vh - 56px); overflow:hidden; }
+
+/* ===== LEFT: KNIŽNICA ===== */
+.library {
+  background:var(--card); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.library-header {
+  padding:16px; border-bottom:1px solid var(--border);
+  font-family:'DM Serif Display',serif; font-size:16px; color:var(--accent);
+}
+.library-sub { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+.library-scroll { overflow-y:auto; flex:1; padding:8px; }
+
+/* Miestnosť — top level */
+.lib-room {
+  margin-bottom:6px; border-radius:10px;
+  border:1.5px solid var(--border); overflow:hidden;
+}
+.lib-room-header {
+  display:flex; align-items:center; gap:8px;
+  padding:9px 12px; cursor:pointer;
+  background:var(--surface);
+  font-size:10px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--text); font-weight:600;
+  transition:background 0.15s;
+  user-select:none;
+}
+.lib-room-header:hover { background:var(--accent-light); }
+.lib-room-header .room-icon { font-size:14px; }
+.lib-room-header .room-arrow {
+  margin-left:auto; font-size:10px; color:var(--muted);
+  transition:transform 0.2s;
+}
+.lib-room.open .room-arrow { transform:rotate(90deg); }
+.lib-room-body { display:none; background:var(--bg); padding:6px 8px; }
+.lib-room.open .lib-room-body { display:block; }
+
+/* Podkategória (Spodné/Horné/Vysoké) */
+.lib-subcat {
+  margin-bottom:4px; border-radius:8px;
+  border:1px solid var(--border); overflow:hidden;
+}
+.lib-subcat-header {
+  display:flex; align-items:center; gap:6px;
+  padding:6px 10px; cursor:pointer;
+  background:var(--card);
+  font-size:9px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--muted); transition:background 0.15s;
+  user-select:none;
+}
+.lib-subcat-header:hover { background:var(--accent-light); color:var(--accent); }
+.lib-subcat-header .sub-arrow {
+  margin-left:auto; font-size:9px; color:var(--muted);
+  transition:transform 0.2s;
+}
+.lib-subcat.open .sub-arrow { transform:rotate(90deg); }
+.lib-subcat-body { display:none; padding:6px 6px; }
+.lib-subcat.open .lib-subcat-body { display:block; }
+
+.lib-category { margin-bottom:16px; }
+.lib-cat-title {
+  font-size:9px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--muted); padding:4px 8px; margin-bottom:8px;
+  border-left:3px solid var(--accent); padding-left:8px;
+}
+
+.lib-item {
+  background:var(--surface); border:1.5px solid var(--border);
+  border-radius:10px; padding:10px 12px; margin-bottom:8px;
+  cursor:grab; transition:all 0.15s; display:flex; align-items:center; gap:10px;
+  user-select:none;
+}
+.lib-item:hover { border-color:var(--accent2); background:var(--accent-light); transform:translateY(-1px); box-shadow:var(--shadow); }
+.lib-item:active { cursor:grabbing; }
+.lib-item.dragging { opacity:0.4; }
+
+.lib-icon {
+  width:36px; height:42px; background:var(--accent-light);
+  border:1.5px solid var(--accent); border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; flex-shrink:0; position:relative;
+}
+.lib-icon.vysoka { height:52px; }
+.lib-icon.horna { height:28px; }
+.lib-preview {
+  width:44px; height:44px; border-radius:6px;
+  background:#f5f2ec; flex-shrink:0;
+  border:1px solid #e0d8cc;
+}
+
+.lib-info { flex:1; min-width:0; }
+.lib-name { font-size:11px; color:var(--text); font-weight:500; }
+.lib-dims { font-size:9px; color:var(--muted); margin-top:2px; letter-spacing:0.5px; }
+.lib-drag-hint { font-size:8px; color:var(--accent2); margin-top:3px; }
+
+.lib-add-btn {
+  background:var(--accent); border:none; border-radius:6px;
+  color:white; font-size:16px; width:28px; height:28px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0; transition:all 0.15s;
+  font-family:'DM Mono',monospace; line-height:1;
+}
+.lib-add-btn:hover { background:var(--accent2); transform:scale(1.1); }
+
+/* ===== CENTER: AXONOMETRIA ===== */
+.canvas-area {
+  display:flex; flex-direction:column; overflow:hidden;
+  background:var(--surface);
+}
+.canvas-toolbar {
+  background:var(--card); border-bottom:1px solid var(--border);
+  padding:10px 16px; display:flex; align-items:center; gap:12px;
+}
+.toolbar-label { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+.toolbar-btn {
+  background:var(--surface); border:1px solid var(--border); border-radius:6px;
+  padding:6px 12px; font-family:'DM Mono',monospace; font-size:10px;
+  cursor:pointer; transition:all 0.15s; color:var(--text);
+}
+.toolbar-btn:hover { border-color:var(--accent); color:var(--accent); }
+.toolbar-btn.danger:hover { border-color:#c0392b; color:#c0392b; }
+.toolbar-btn.wall-nav { font-size:13px; padding:4px 10px; font-weight:bold; }
+.toolbar-btn.wall-nav.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.wall-width-ctrl { display:flex; align-items:center; gap:5px; margin-left:8px; padding-left:12px; border-left:1px solid var(--border); }
+
+.canvas-wrap {
+  flex:1; display:flex; align-items:stretch; justify-content:stretch;
+  position:relative; overflow:hidden;
+}
+
+#wall-canvas {
+  display:block; width:100%; height:100%;
+  background:#f8f5f0;
+}
+
+.drop-hint {
+  position:absolute; pointer-events:none;
+  font-size:13px; color:var(--muted); letter-spacing:1px;
+  text-align:center; transition:opacity 0.3s;
+}
+
+/* ===== RIGHT: DETAIL + SÚHRN ===== */
+.detail-panel {
+  background:var(--card); border-left:1px solid var(--border);
+  display:flex; flex-direction:column; overflow-y:auto;
+}
+
+.detail-header {
+  padding:16px; border-bottom:1px solid var(--border);
+  font-family:'DM Serif Display',serif; font-size:16px; color:var(--accent);
+  position:sticky; top:0; background:var(--card); z-index:10;
+}
+
+.detail-body { padding:16px; flex:1; }
+
+.detail-section { margin-bottom:20px; }
+.detail-section-title {
+  font-size:9px; letter-spacing:2px; text-transform:uppercase;
+  color:var(--muted); margin-bottom:10px;
+  border-bottom:1px solid var(--border); padding-bottom:6px;
+}
+
+/* Selected cabinet editor */
+.selected-editor { display:none; }
+.selected-editor.visible { display:block; }
+
+.no-selection {
+  text-align:center; padding:32px 16px;
+  color:var(--muted); font-size:11px; line-height:1.8;
+}
+.no-sel-icon { font-size:48px; margin-bottom:12px; opacity:0.4; }
+
+.dim-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+.dim-group { display:flex; flex-direction:column; gap:4px; }
+.dim-label { font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+.dim-input {
+  background:var(--surface); border:1.5px solid var(--border); border-radius:6px;
+  color:var(--text); font-family:'DM Mono',monospace; font-size:14px;
+  padding:8px 10px; outline:none; width:100%; transition:border-color 0.15s;
+  -moz-appearance:textfield;
+}
+.dim-input::-webkit-outer-spin-button, .dim-input::-webkit-inner-spin-button { -webkit-appearance:none; }
+.dim-input:focus { border-color:var(--accent); background:white; }
+.dim-unit { font-size:9px; color:var(--muted); margin-top:2px; }
+
+/* Dekor mini */
+.dekor-mini { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.dekor-mini-label { font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+.dekor-mini-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.dekor-mini-btn {
+  border:1.5px solid var(--border); border-radius:6px; padding:6px 4px;
+  cursor:pointer; text-align:center; transition:all 0.12s; background:var(--surface);
+}
+.dekor-mini-btn:hover { border-color:var(--accent2); }
+.dekor-mini-btn.active { border-color:var(--accent); background:var(--accent-light); }
+.dekor-swatch { width:100%; height:20px; border-radius:3px; border:1px solid rgba(0,0,0,0.08); margin-bottom:3px; }
+.dekor-mini-name { font-size:8px; color:var(--muted); line-height:1.2; }
+
+/* Diely mini table */
+.diely-mini { width:100%; border-collapse:collapse; font-size:10px; margin-bottom:12px; }
+.diely-mini th { font-size:8px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); padding:4px 6px; border-bottom:1px solid var(--border); text-align:left; }
+.diely-mini td { padding:5px 6px; border-bottom:1px dashed #ece6d8; color:var(--text); }
+.diely-mini tr:last-child td { border-bottom:none; }
+.mat-tag { font-size:8px; padding:1px 5px; border-radius:3px; }
+.mat-dtd { background:#e8f0e0; color:var(--accent); }
+.mat-sol { background:#fdf3e0; color:var(--wood); }
+
+/* Summary */
+.sum-line { display:flex; justify-content:space-between; padding:6px 0; font-size:11px; color:var(--muted); border-bottom:1px dashed #ece6d8; }
+.sum-line:last-child { border-bottom:none; }
+.sum-line .v { color:var(--text); font-size:12px; }
+.sum-section-label { font-size:8px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin:10px 0 4px; opacity:0.7; }
+.sum-dekor-row { display:flex; justify-content:space-between; padding:4px 0 4px 10px; font-size:11px; color:var(--text); border-bottom:1px dashed #ece6d8; }
+.sum-dekor-row .dekor-dot { width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:5px; vertical-align:middle; border:1px solid rgba(0,0,0,0.1); }
+.sum-dekor-row .dekor-sub { font-size:9px; color:var(--muted); }
+.sum-total-mat { font-weight:500; border-top:1px solid #d8cec0 !important; margin-top:2px; }
+.sum-total-mat span { color:var(--text) !important; font-size:12px !important; }
+
+.marza-row { display:flex; align-items:center; gap:8px; margin:10px 0; }
+.marza-row label { font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+input[type="range"] { flex:1; accent-color:var(--accent); cursor:pointer; }
+.marza-pct { font-size:13px; color:var(--accent2); font-weight:500; min-width:36px; text-align:right; }
+
+.total-box {
+  background:var(--accent); border-radius:10px; padding:16px;
+  text-align:center; margin-top:12px;
+}
+.total-box .tl { font-size:8px; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,0.5); margin-bottom:4px; }
+.total-box .ta { font-family:'DM Serif Display',serif; font-size:32px; color:white; }
+.total-box .tv { font-size:9px; color:rgba(255,255,255,0.45); margin-top:3px; }
+
+.btn-del {
+  width:100%; padding:10px; background:transparent;
+  border:1px solid #e0d0c0; border-radius:8px;
+  color:#c0392b; font-family:'DM Mono',monospace; font-size:10px;
+  letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; margin-top:10px;
+  transition:all 0.15s;
+}
+.btn-del:hover { background:#fff0ee; border-color:#c0392b; }
+
+.panel-typ-btn {
+  flex:1; padding:8px 6px; border:1.5px solid var(--border);
+  background:var(--surface); border-radius:8px;
+  font-family:'DM Mono',monospace; font-size:10px; cursor:pointer;
+  color:var(--text-muted); transition:all 0.15s;
+}
+.panel-typ-btn.active {
+  border-color:var(--accent2); background:#f0f4ec; color:var(--accent2); font-weight:600;
+}
+
+.door-side-btn {
+  padding:10px 8px; border:1.5px solid var(--border);
+  background:var(--surface); border-radius:8px;
+  font-family:'DM Mono',monospace; font-size:11px;
+  cursor:pointer; transition:all 0.15s; color:var(--muted);
+}
+.door-side-btn:hover { border-color:var(--accent2); color:var(--text); }
+.door-side-btn.active { border-color:var(--accent); background:var(--accent-light); color:var(--accent); font-weight:500; }
+
+@media (max-width:900px) {
+  .app { grid-template-columns:1fr; grid-template-rows:auto 400px auto; height:auto; }
+  .library { max-height:220px; }
+  .detail-panel { max-height:500px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Stolár<span>App</span></div>
+  <div class="header-badge">Kuchyňa — Prototyp</div>
+</header>
+
+<div class="app">
+
+<!-- ===== KNIŽNICA ===== -->
+<div class="library">
+  <div class="library-header">
+    Knižnica skriniek
+    <div class="library-sub">Klikni + alebo pretiahni</div>
+  </div>
+  <div class="library-scroll">
+
+    <!-- KUCHYŇA -->
+    <div class="lib-room" id="room-kuchyna">
+      <div class="lib-room-header" onclick="toggleRoom('kuchyna')">
+        <span class="room-icon">🍳</span> Kuchyňa
+        <span class="room-arrow">▶</span>
+      </div>
+      <div class="lib-room-body">
+
+        <div class="lib-subcat" id="sub-kuchyna-spodne">
+          <div class="lib-subcat-header" onclick="toggleSub('kuchyna-spodne')">
+            Spodné <span class="sub-arrow">▶</span>
+          </div>
+          <div class="lib-subcat-body">
+            <div class="lib-item" draggable="true" data-type="spodna_600">
+              <canvas class="lib-preview" data-type="spodna_600" width="44" height="44"></canvas>
+              <div class="lib-info">
+                <div class="lib-name">Pantová 600</div>
+                <div class="lib-dims">600 × 780 × 510 mm · 2 police</div>
+              </div>
+              <button class="lib-add-btn" onclick="event.stopPropagation();addCabinet('spodna_600',80)" title="Pridať">+</button>
+            </div>
+            <div class="lib-item" draggable="true" data-type="spodna_merivobox">
+              <canvas class="lib-preview" data-type="spodna_merivobox" width="44" height="44"></canvas>
+              <div class="lib-info">
+                <div class="lib-name">Merivobox 600</div>
+                <div class="lib-dims">600 × 780 × 510 mm · M + 2×E výsuvy</div>
+              </div>
+              <button class="lib-add-btn" onclick="event.stopPropagation();addCabinet('spodna_merivobox',80)" title="Pridať">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lib-subcat" id="sub-kuchyna-horne">
+          <div class="lib-subcat-header" onclick="toggleSub('kuchyna-horne')">
+            Horné <span class="sub-arrow">▶</span>
+          </div>
+          <div class="lib-subcat-body">
+            <div class="lib-item" draggable="true" data-type="horna_600">
+              <canvas class="lib-preview" data-type="horna_600" width="44" height="44"></canvas>
+              <div class="lib-info">
+                <div class="lib-name">Horná 600</div>
+                <div class="lib-dims">600 × 1200 × 320 mm</div>
+              </div>
+              <button class="lib-add-btn" onclick="event.stopPropagation();addCabinet('horna_600',80)" title="Pridať">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lib-subcat" id="sub-kuchyna-vysoke">
+          <div class="lib-subcat-header" onclick="toggleSub('kuchyna-vysoke')">
+            Vysoké <span class="sub-arrow">▶</span>
+          </div>
+          <div class="lib-subcat-body">
+            <div class="lib-item" draggable="true" data-type="vysoka_600">
+              <canvas class="lib-preview" data-type="vysoka_600" width="44" height="44"></canvas>
+              <div class="lib-info">
+                <div class="lib-name">Vysoká 600</div>
+                <div class="lib-dims">600 × 2160 × 560 mm</div>
+              </div>
+              <button class="lib-add-btn" onclick="event.stopPropagation();addCabinet('vysoka_600',80)" title="Pridať">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lib-subcat" id="sub-kuchyna-doska">
+          <div class="lib-subcat-header" onclick="toggleSub('kuchyna-doska')">
+            Pracovná doska / Zástena <span class="sub-arrow">▶</span>
+          </div>
+          <div class="lib-subcat-body">
+            <div class="lib-item" draggable="true" data-type="pracovna_doska">
+              <canvas class="lib-preview" data-type="pracovna_doska" width="44" height="44"></canvas>
+              <div class="lib-info">
+                <div class="lib-name">Pracovná doska</div>
+                <div class="lib-dims">650 × 40 mm · panel 4100</div>
+              </div>
+              <button class="lib-add-btn" onclick="event.stopPropagation();addCabinet('pracovna_doska',80)" title="Pridať">+</button>
+            </div>
+            <div class="lib-item" draggable="true" data-type="zastena">
+              <canvas class="lib-preview" data-type="zastena" width="44" height="44"></canvas>
+              <div class="lib-info">
+                <div class="lib-name">Zástena</div>
+                <div class="lib-dims">650 × 580 × 10 mm</div>
+              </div>
+              <button class="lib-add-btn" onclick="event.stopPropagation();addCabinet('zastena',80)" title="Pridať">+</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- OBÝVAČKA -->
+    <div class="lib-room" id="room-obyvacka">
+      <div class="lib-room-header" onclick="toggleRoom('obyvacka')">
+        <span class="room-icon">🛋️</span> Obývačka
+        <span class="room-arrow">▶</span>
+      </div>
+      <div class="lib-room-body">
+        <div style="padding:12px; font-size:10px; color:var(--muted); text-align:center;">Čoskoro…</div>
+      </div>
+    </div>
+
+    <!-- SPÁLŇA -->
+    <div class="lib-room" id="room-spalna">
+      <div class="lib-room-header" onclick="toggleRoom('spalna')">
+        <span class="room-icon">🛏️</span> Spálňa
+        <span class="room-arrow">▶</span>
+      </div>
+      <div class="lib-room-body">
+        <div style="padding:12px; font-size:10px; color:var(--muted); text-align:center;">Čoskoro…</div>
+      </div>
+    </div>
+
+    <!-- WC -->
+    <div class="lib-room" id="room-wc">
+      <div class="lib-room-header" onclick="toggleRoom('wc')">
+        <span class="room-icon">🚿</span> WC
+        <span class="room-arrow">▶</span>
+      </div>
+      <div class="lib-room-body">
+        <div style="padding:12px; font-size:10px; color:var(--muted); text-align:center;">Čoskoro…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== CANVAS AXONOMETRIA ===== -->
+<div class="canvas-area">
+  <div class="canvas-toolbar">
+    <button class="toolbar-btn wall-nav" id="btn-wall-L" onclick="switchWall('L')" title="Ľavá stena">◀</button>
+    <span class="toolbar-label" id="wall-label">Stena B (stredná)</span>
+    <button class="toolbar-btn wall-nav" id="btn-wall-R" onclick="switchWall('R')" title="Pravá stena">▶</button>
+    <div class="wall-width-ctrl">
+      <span class="toolbar-label" style="font-size:10px">šírka</span>
+      <input type="number" id="wall-width-input" value="2500" min="500" max="6000" step="100"
+        onchange="setWallWidth(this.value)" onblur="setWallWidth(this.value)"
+        style="width:62px;background:#f0ece4;border:1px solid #d0c8b8;border-radius:4px;padding:2px 5px;font-family:inherit;font-size:11px;color:#4a3f2f;text-align:right">
+      <span class="toolbar-label" style="font-size:10px">mm</span>
+    </div>
+    <button class="toolbar-btn" onclick="zoomIn()">＋</button>
+    <button class="toolbar-btn" onclick="zoomOut()">－</button>
+    <button class="toolbar-btn" onclick="resetView()">↺</button>
+    <button class="toolbar-btn danger" onclick="clearWall()">🗑</button>
+  </div>
+  <div class="canvas-wrap" id="canvas-wrap">
+    <canvas id="wall-canvas" width="860" height="600"></canvas>
+    <div class="drop-hint" id="drop-hint">
+      ← Klikni + pri skrinke alebo ju pretiahni sem
+    </div>
+  </div>
+</div>
+
+<!-- ===== DETAIL PANEL ===== -->
+<div class="detail-panel">
+  <div class="detail-header">
+    Detail & Cena
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:2px" id="detail-subtitle">Vyber skrinku</div>
+  </div>
+  <div class="detail-body">
+
+    <!-- NO SELECTION -->
+    <div id="no-selection">
+      <div class="no-selection">
+        <div class="no-sel-icon">🪵</div>
+        Pretiahni skrinku z knižnice<br>alebo klikni na skrinku v axonometrii<br>pre detail a úpravu.
+      </div>
+    </div>
+
+    <!-- EDITOR -->
+    <div id="cabinet-editor" class="selected-editor">
+
+      <div class="detail-section">
+        <div class="detail-section-title">Rozmery</div>
+        <div class="dim-row">
+          <div class="dim-group">
+            <label class="dim-label">Šírka</label>
+            <input class="dim-input" type="number" id="ed-sirka" oninput="updateSelected()">
+            <span class="dim-unit">mm</span>
+          </div>
+          <div class="dim-group">
+            <label class="dim-label">Výška</label>
+            <input class="dim-input" type="number" id="ed-vyska" oninput="updateSelected()">
+            <span class="dim-unit">mm</span>
+          </div>
+          <div class="dim-group">
+            <label class="dim-label">Hĺbka</label>
+            <input class="dim-input" type="number" id="ed-hlbka" oninput="updateSelected()">
+            <span class="dim-unit">mm</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Dekór korpusu</div>
+        <div class="dekor-mini-grid" id="ed-korpus-grid"></div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Strana otvárania</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="ed-doorside">
+          <button class="door-side-btn active" id="btn-lava" onclick="setDoorSide('lava')">
+            ◀ Ľavé
+          </button>
+          <button class="door-side-btn" id="btn-prava" onclick="setDoorSide('prava')">
+            Pravé ▶
+          </button>
+        </div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Dekór dvierok</div>
+        <div class="dekor-mini-grid" id="ed-dvierka-grid"></div>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Diely</div>
+        <table class="diely-mini">
+          <thead><tr><th>Diel</th><th>Rozmer</th><th>m²</th><th>Mat.</th></tr></thead>
+          <tbody id="ed-diely"></tbody>
+        </table>
+      </div>
+
+      <div class="detail-section">
+        <div class="detail-section-title">Pánty Blum</div>
+        <div id="ed-panty" style="font-size:13px;color:var(--accent);padding:8px 0"></div>
+      </div>
+
+      <div class="detail-section" id="ed-panel-typ-section" style="display:none">
+        <div class="detail-section-title">Typ panela</div>
+        <div style="display:flex;gap:8px;padding:6px 0">
+          <button id="ed-panel-full" class="panel-typ-btn active" onclick="setPanelTyp('full')">650 × 4100 mm — 120,00 €</button>
+          <button id="ed-panel-half" class="panel-typ-btn" onclick="setPanelTyp('half')">650 × 2050 mm — 60,00 €</button>
+        </div>
+      </div>
+
+      <button class="btn-del" onclick="deleteSelected()">🗑 Odstrániť skrinku</button>
+    </div>
+
+    <!-- CELKOVÝ SÚHRN -->
+    <div class="detail-section" style="margin-top:20px;padding-top:16px;border-top:2px solid var(--border)">
+      <div class="detail-section-title">Celková kalkulácia steny</div>
+
+      <div class="sum-section-label">Plošný materiál DTD 18mm</div>
+      <div id="sum-dekor-list"></div>
+      <div class="sum-dekor-row" id="sum-sol-row" style="display:none">
+        <span>
+          <span class="dekor-dot" style="background:#f8f6f2"></span>
+          Sololit biely 3mm
+          <span class="dekor-sub" id="sum-sol-sub"></span>
+        </span>
+        <span id="sum-sol">—</span>
+      </div>
+
+      <div class="sum-dekor-row" id="sum-dtd-biela-row" style="display:none">
+        <span>
+          <span class="dekor-dot" style="background:#f8f6f2;border:1px solid #d0c8b8"></span>
+          DTD 16mm biela
+          <span class="dekor-sub" id="sum-dtd-biela-sub"></span>
+        </span>
+        <span id="sum-dtd-biela">—</span>
+      </div>
+      <div class="sum-line sum-total-mat"><span>Plošný materiál spolu</span><span class="v" id="sum-mat-total">—</span></div>
+      <div class="sum-line sum-total-mat"><span>Porez a hranovanie</span><span class="v" id="sum-porez">—</span></div>
+
+      <div class="sum-section-label" style="margin-top:10px">Pracovná doska & Zástena</div>
+      <div class="sum-dekor-row" id="sum-doska-row" style="display:none">
+        <span>
+          <span class="dekor-dot" style="background:#d4aa74"></span>
+          Pracovná doska
+          <span class="dekor-sub" id="sum-doska-sub"></span>
+        </span>
+        <span id="sum-doska">—</span>
+      </div>
+      <div class="sum-dekor-row" id="sum-zastena-row" style="display:none">
+        <span>
+          <span class="dekor-dot" style="background:#b8956a"></span>
+          Zástena
+          <span class="dekor-sub" id="sum-zastena-sub"></span>
+        </span>
+        <span id="sum-zastena">—</span>
+      </div>
+      <div class="sum-line sum-total-mat"><span>PD a zástena spolu</span><span class="v" id="sum-porez-total">—</span></div>
+
+      <div class="sum-section-label" style="margin-top:10px">Kovanie</div>
+      <div class="sum-dekor-row" id="sum-panty-row" style="display:none">
+        <span>
+          <span class="dekor-dot" style="background:#c0c0c0;border-color:#999"></span>
+          Pánty Blum
+          <span class="dekor-sub" id="sum-panty-sub"></span>
+        </span>
+        <span id="sum-panty">—</span>
+      </div>
+      <div class="sum-dekor-row" id="sum-nozicky-row" style="display:none">
+        <span>
+          <span class="dekor-dot" style="background:#d0d0d0;border-color:#999"></span>
+          Nožičky
+          <span class="dekor-sub" id="sum-nozicky-sub"></span>
+        </span>
+        <span id="sum-nozicky">—</span>
+      </div>
+      <div class="sum-dekor-row" id="sum-merivom-row" style="display:none">
+        <span>
+          <span class="dekor-dot" style="background:#4a8fc4;border-color:#2a6fa4"></span>
+          Merivobox M kovanie
+          <span class="dekor-sub" id="sum-merivom-sub"></span>
+        </span>
+        <span id="sum-merivom">—</span>
+      </div>
+      <div class="sum-dekor-row" id="sum-merivoe-row" style="display:none">
+        <span>
+          <span class="dekor-dot" style="background:#2a6fa4;border-color:#1a5f94"></span>
+          Merivobox E kovanie
+          <span class="dekor-sub" id="sum-merivoe-sub"></span>
+        </span>
+        <span id="sum-merivoe">—</span>
+      </div>
+      <div class="sum-line sum-total-mat" style="margin-top:4px"><span>Kovanie spolu</span><span class="v" id="sum-kov-total">—</span></div>
+
+      <div class="sum-line" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <span>Náklady celkom</span><span class="v" id="sum-nak">—</span>
+      </div>
+
+      <div class="marza-row">
+        <label>Marža</label>
+        <input type="range" id="marza" min="0" max="100" value="30" oninput="updateMarza(this.value)">
+        <span class="marza-pct" id="marza-pct">30%</span>
+      </div>
+
+      <div class="total-box">
+        <div class="tl">Celková cena bez DPH</div>
+        <div class="ta" id="sum-total">—</div>
+        <div class="tv" id="sum-vat">s DPH 20%: —</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ============================================================
+// CONSTANTS & DATA
+// ============================================================
+const TABULA_W = 2800, TABULA_H = 2070;
+const TABULA_AREA = (TABULA_W/1000)*(TABULA_H/1000);
+const HUSTOTA = 12.48;
+const SOLOLIT_CENA = 23.37;
+const PANTY_CENA = 5.00;
+const NOZICKY_CENA = 1.20;
+const DOSKA_CENA      = 120.00;  // pracovná doska 650×4100mm
+const DOSKA_CENA_HALF =  60.00;  // pracovná doska 650×2050mm
+const DOSKA_PANEL_H_FULL = 4100; // mm
+const DOSKA_PANEL_H_HALF = 2050; // mm
+const ZASTENA_CENA      = 120.00;
+const ZASTENA_CENA_HALF =  60.00;
+const D = 18; // hrúbka DTD dosky mm
+
+const DEKORY = [
+  {id:'W960SM',    name:'Biela hladká',   kod:'W960 SM',    cena:56.79,  farba:'#f8f6f2'},
+  {id:'W960ST7',   name:'Biela perlička', kod:'W960 ST7',   cena:56.79,  farba:'#f0ede8'},
+  {id:'W1000ST9',  name:'Biela prémium',  kod:'W1000 ST9',  cena:74.47,  farba:'#fafaf8'},
+  {id:'W1000ST19', name:'Biela prém+',    kod:'W1000 ST19', cena:115.85, farba:'#f5f5f0'},
+  {id:'W1000ST38', name:'Biela prém++',   kod:'W1000 ST38', cena:133.76, farba:'#f2f0ec'},
+  {id:'W1100ST9',  name:'Alpská biela',   kod:'W1100 ST9',  cena:90.45,  farba:'#f7f5f0'},
+  {id:'H3090ST22', name:'Dub Hamilton',   kod:'H3090 ST22', cena:95.35,  farba:'#b8956a'},
+];
+
+const MERIVOBOX_M_CENA = 50.00;  // kovanie Merivobox M
+const MERIVOBOX_E_CENA = 60.00;  // kovanie Merivobox E
+// Výšky čiel: M=160mm, E = zvyšok/2 (po 3mm medzere)
+// Chrbát zásuvky: M=83mm, E=184mm
+// Vnútorný priestor zásuvky = S_vnut - 51mm, doska 16mm biela
+
+const CABINET_TEMPLATES = {
+  spodna_600:     {name:'Pantová 600',    kat:'spodna',   s:600,  v:780,  h:510, hasNozicky:true,  hasDrawer:false},
+  spodna_400:     {name:'Spodná 400',     kat:'spodna',   s:400,  v:780,  h:510, hasNozicky:true,  hasDrawer:false},
+  spodna_800:     {name:'Spodná 800',     kat:'spodna',   s:800,  v:780,  h:510, hasNozicky:true,  hasDrawer:false},
+  spodna_merivobox: {name:'Merivobox 600', kat:'spodna',  s:600,  v:780,  h:510, hasNozicky:true,  hasDrawer:true},
+  horna_600:      {name:'Horná 600',      kat:'horna',    s:600,  v:1200, h:320, hasNozicky:false, hasDrawer:false},
+  horna_400:      {name:'Horná 400',      kat:'horna',    s:400,  v:1200, h:320, hasNozicky:false, hasDrawer:false},
+  vysoka_600:     {name:'Vysoká 600',     kat:'vysoka',   s:600,  v:2160, h:560, hasNozicky:true,  hasDrawer:false},
+  pracovna_doska: {name:'Pracovná doska', kat:'doska',    s:600,  v:40,   h:650, hasNozicky:false, hasDrawer:false},
+  zastena:        {name:'Zástena',        kat:'zastena',  s:600,  v:600,  h:10,  hasNozicky:false, hasDrawer:false},
+};
+
+// State
+// Steny: 'L' = ľavá, 'C' = stredná, 'R' = pravá
+let walls = {
+  L: { name: 'Stena A (ľavá)',   width: 2500, cabinets: [] },
+  C: { name: 'Stena B (stredná)', width: 2500, cabinets: [] },
+  R: { name: 'Stena C (pravá)',  width: 2500, cabinets: [] },
+};
+let currentWall = 'C'; // začíname na strednej
+let cabinets = walls[currentWall].cabinets; // alias na aktívnu stenu
+
+let selectedId = null;
+let marza = 30;
+let dragType = null;
+let zoom = 1.0;
+
+// Canvas
+const canvas = document.getElementById('wall-canvas');
+const ctx = canvas.getContext('2d');
+
+// ============================================================
+// WALL NAVIGATION
+// ============================================================
+function switchWall(dir) {
+  // dir = 'L' alebo 'R' (smer šípky)
+  const order = ['L', 'C', 'R'];
+  const idx = order.indexOf(currentWall);
+  let newIdx = dir === 'L' ? idx - 1 : idx + 1;
+  newIdx = Math.max(0, Math.min(2, newIdx));
+  currentWall = order[newIdx];
+  cabinets = walls[currentWall].cabinets;
+  selectedId = null;
+  hideEditor();
+  updateWallUI();
+  redraw();
+  calcAll();
+}
+
+function updateWallUI() {
+  const w = walls[currentWall];
+  document.getElementById('wall-label').textContent = w.name;
+  document.getElementById('wall-width-input').value = w.width;
+  document.getElementById('btn-wall-L').classList.toggle('active', currentWall === 'L');
+  document.getElementById('btn-wall-R').classList.toggle('active', currentWall === 'R');
+  // Disable šípku doľava ak sme na L, doprava ak sme na R
+  document.getElementById('btn-wall-L').style.opacity = currentWall === 'L' ? '1' : '0.7';
+  document.getElementById('btn-wall-R').style.opacity = currentWall === 'R' ? '1' : '0.7';
+}
+
+function setWallWidth(val) {
+  const w = parseInt(val) || 2500;
+  walls[currentWall].width = Math.max(500, Math.min(6000, w));
+  document.getElementById('wall-width-input').value = walls[currentWall].width;
+  redraw();
+}
+
+// Vráti rohovú skrinku z vedľajšej steny (pre zobrazenie polopriehľadne)
+function getCornerGhost() {
+  // Ľavá stena → rohová skriňa z 'L' priliehajúca ku pravému okraju
+  // Pravá stena → rohová skriňa z 'R' priliehajúca ku ľavému okraju
+  let neighborKey = null;
+  let fromRight = false;
+  if (currentWall === 'C') return null; // stredná nemá roh (alebo má oboje ale neriešime)
+  if (currentWall === 'L') { neighborKey = 'C'; fromRight = true; }
+  if (currentWall === 'R') { neighborKey = 'C'; fromRight = false; }
+  if (!neighborKey) return null;
+
+  const neighborCabs = walls[neighborKey].cabinets;
+  if (neighborCabs.length === 0) return null;
+
+  // Vrátim skrinku priliehajúcu k rohom (prvú alebo poslednú)
+  const sorted = [...neighborCabs].sort((a, b) => a.wallX - b.wallX);
+  return fromRight ? sorted[sorted.length - 1] : sorted[0];
+}
+
+// Vráti štartovú X pozíciu pre novú skrinku (od rohu ak treba)
+function getStartX(wall) {
+  const cabs = wall.cabinets.filter(c => c.kat !== 'doska' && c.kat !== 'zastena');
+  if (cabs.length === 0) {
+    // Začni od ľavého rohu (0mm) ak je sused na strednej stene
+    return 0;
+  }
+  return Math.max(...cabs.map(c => c.wallX + c.s));
+}
+
+// ============================================================
+// DRAG FROM LIBRARY
+// ============================================================
+document.querySelectorAll('.lib-item').forEach(el => {
+  el.addEventListener('dragstart', e => {
+    dragType = el.dataset.type;
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'copy';
+  });
+  el.addEventListener('dragend', () => {
+    el.classList.remove('dragging');
+    dragType = null;
+  });
+});
+
+const wrap = document.getElementById('canvas-wrap');
+wrap.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+wrap.addEventListener('drop', e => {
+  e.preventDefault();
+  if (!dragType) return;
+  const tpl = CABINET_TEMPLATES[dragType];
+  if (!tpl) return;
+
+  // figure out drop X position on wall
+  const rect = canvas.getBoundingClientRect();
+  const dropX = (e.clientX - rect.left) / zoom;
+  addCabinet(dragType, dropX);
+});
+
+// ============================================================
+// ADD CABINET
+// ============================================================
+let nextId = 1;
+
+const CABINET_DEPTH_WITH_DOOR = 600; // spodná/vysoká: 510 korpus + 90 dvierka+fuga
+const CABINET_DEPTH_HORNA = 340;     // horná: 320 korpus + 20 dvierka
+
+function getCabDepthWithDoor(kat) {
+  return (kat === 'horna') ? CABINET_DEPTH_HORNA : CABINET_DEPTH_WITH_DOOR;
+}
+
+// Vráti maximálnu využiteľnú šírku steny (obmedzená duchom zo steny B)
+function ghostCabsOnB(side) {
+  // Vráti pole skriniek zo steny B ktoré sa dotýkajú príslušnej bočnej steny
+  // — môže byť viac (spodná + horná súčasne)
+  const TOL = 50;
+  const bWallWidth = walls['C'].width;
+  const bCabs = walls['C'].cabinets.filter(c => c.kat === 'spodna' || c.kat === 'vysoka' || c.kat === 'horna');
+  if (bCabs.length === 0) return [];
+  if (side === 'L') return bCabs.filter(c => c.wallX <= TOL);
+  else              return bCabs.filter(c => c.wallX + c.s >= bWallWidth - TOL);
+}
+
+function ghostCabOnB(side) {
+  // Spätná kompatibilita — vráti prvú (pre usableWidth/cornerOffset používame najväčšiu hĺbku)
+  const cabs = ghostCabsOnB(side);
+  if (cabs.length === 0) return null;
+  // Vrátim tú s najväčšou hĺbkou (spodná/vysoká > horná)
+  return cabs.reduce((a, b) => getCabDepthWithDoor(a.kat) >= getCabDepthWithDoor(b.kat) ? a : b);
+}
+
+function getGhostDepth(side) {
+  const cab = ghostCabOnB(side);
+  if (!cab) return CABINET_DEPTH_WITH_DOOR;
+  return getCabDepthWithDoor(cab.kat);
+}
+
+function getWallUsableWidth() {
+  if (currentWall === 'C') return walls[currentWall].width;
+  if (ghostCabOnB(currentWall)) return walls[currentWall].width - getGhostDepth(currentWall);
+  return walls[currentWall].width;
+}
+
+function getCornerOffsetForKat(kat) {
+  // Vráti offset pre danú kategóriu skrinky na aktuálnej stene
+  if (currentWall === 'C') return 0;
+  const side = currentWall; // 'L' alebo 'R'
+  const ghost = ghostCabsOnB(side).find(c => c.kat === kat);
+  if (!ghost) return 0;
+  if (currentWall === 'R') return getCabDepthWithDoor(kat);
+  return 0; // stena L: obmedzená vpravo, nie vľavo
+}
+
+function getCornerOffset() {
+  if (currentWall === 'C') return 0;
+  if (currentWall === 'R' && ghostCabOnB('R')) return getGhostDepth('R');
+  return 0;
+}
+
+function addCabinet(type, dropX) {
+  const tpl = CABINET_TEMPLATES[type];
+  const id = nextId++;
+  const scale = getWallScale();
+  const cabs = walls[currentWall].cabinets;
+  const cornerOffset = getCornerOffset();
+
+  // Auto-place: každá kategória má vlastnú pozíciu
+  // Horné/spodné/vysoké sa ukladajú nezávisle, vždy od wallX=0
+  let wallX = 0;
+  const sameCat = cabs.filter(c => c.kat === tpl.kat && c.kat !== 'doska' && c.kat !== 'zastena');
+  const usable = getWallUsableWidth();
+
+  if (currentWall === 'L') {
+    // Použiteľná šírka závisí od kategórie — horná má menšiu hĺbku ducha
+    const catGhost = ghostCabsOnB('L').find(c => c.kat === tpl.kat);
+    const catDepth = catGhost ? getCabDepthWithDoor(tpl.kat) : 0;
+    const catUsable = walls[currentWall].width - catDepth;
+    const dxMm = tpl.h * 0.30 * Math.cos(Math.PI / 6);
+    if (sameCat.length > 0) {
+      const leftmost = Math.min(...sameCat.map(c => c.wallX));
+      wallX = leftmost - tpl.s;
+      if (wallX < 0) wallX = 0;
+    } else {
+      wallX = catUsable - tpl.s + dxMm;
+      if (wallX < 0) wallX = 0;
+    }
+  } else {
+    // Stena C a R: skrinky rastú zľava doprava
+    if (sameCat.length > 0) {
+      wallX = Math.max(...sameCat.map(c => c.wallX + c.s));
+    } else {
+      wallX = getCornerOffsetForKat(tpl.kat);
+    }
+  }
+
+  // Šírka a pozícia pracovnej dosky/zásteny
+  let autoS = tpl.s;
+  let autoX = wallX;
+  if (type === 'pracovna_doska' || type === 'zastena') {
+    const spodne = cabs.filter(c => c.kat === 'spodna');
+    if (spodne.length > 0) {
+      const minX = Math.min(...spodne.map(c => c.wallX));
+      const maxX = Math.max(...spodne.map(c => c.wallX + c.s));
+      if (type === 'pracovna_doska') {
+        autoX = minX; autoS = maxX - minX;
+      } else {
+        const vysoke = cabs.filter(c => c.kat === 'vysoka');
+        let zLeft = minX, zRight = maxX;
+        vysoke.forEach(v => {
+          if (v.wallX <= zLeft && v.wallX + v.s > zLeft) zLeft = v.wallX + v.s;
+          if (v.wallX + v.s >= zRight && v.wallX < zRight) zRight = v.wallX;
+        });
+        autoX = zLeft; autoS = Math.max(100, zRight - zLeft);
+      }
+    }
+  }
+
+  let autoV = tpl.v;
+  if (type === 'zastena') autoV = getZastenaV();
+
+  // Orezanie na hranicu steny — ak skriňa presiahne použiteľnú šírku, zúži sa
+  const catGhostClamp = ghostCabsOnB(currentWall === 'L' ? 'L' : currentWall === 'R' ? 'R' : 'C').find(c => c.kat === tpl.kat);
+  const catDepthClamp = catGhostClamp ? getCabDepthWithDoor(tpl.kat) : 0;
+  const wallWidth = (currentWall === 'L')
+    ? walls[currentWall].width - catDepthClamp + tpl.h * 0.30 * Math.cos(Math.PI / 6)
+    : walls[currentWall].width - (currentWall === 'R' ? catDepthClamp : 0);
+  if (tpl.kat !== 'doska' && tpl.kat !== 'zastena') {
+    const rightEdge = autoX + autoS;
+    if (rightEdge > wallWidth) {
+      autoS = wallWidth - autoX;
+    }
+    if (autoS < 200) return;
+  }
+
+  cabs.push({
+    id, type,
+    name: tpl.name,
+    kat: tpl.kat,
+    s: autoS, v: autoV, h: tpl.h,
+    korpus: 'W960SM',
+    dvierka: 'H3090ST22',
+    doorSide: 'lava',
+    wallX: autoX,
+    hasDrawer: tpl.hasDrawer || false,
+    hasNozicky: tpl.hasNozicky || false,
+    panelTyp: 'full', // 'full' = 650×4100, 'half' = 650×2050
+  });
+  cabinets = walls[currentWall].cabinets;
+  selectedId = id;
+  document.getElementById('drop-hint').style.opacity = '0';
+  redraw();
+  showEditor();
+  calcAll();
+}
+
+// ============================================================
+// WALL SCALE & DRAWING
+// ============================================================
+const WALL_SCALE_PX = 0.16; // fallback
+
+function getWallScale() {
+  // Dynamický scale — stena zaberá ~75% šírky canvasu
+  const wallW = walls[currentWall].width;
+  const wrap = document.getElementById('canvas-wrap');
+  const availW = (wrap ? wrap.clientWidth : 900) * 0.78 - 120; // 120 = 2×margin + bočné steny
+  return Math.min(WALL_SCALE_PX * zoom, (availW / wallW) * zoom);
+}
+
+// Axonometric projection helpers
+const ANG = Math.PI / 6; // 30°
+function axX(x, z) { return x + z * Math.cos(ANG); }
+function axY(y, z) { return y - z * Math.sin(ANG); }
+
+// Pomocná funkcia — vypočíta Y pozíciu korpusu (top) pre danú skrinku
+function getCabY(cab) {
+  const sc = getWallScale();
+  const H = cab.v * sc;
+  const nH = (cab.kat === 'spodna' || cab.kat === 'vysoka') ? 100 * sc : 0;
+  const floor = canvas.height - 50; // sedí na podlahe
+  if (cab.kat === 'spodna') return floor - nH - H;
+  if (cab.kat === 'vysoka') return floor - nH - H;
+  if (cab.kat === 'horna')  return floor - 1500 * sc - H;
+  if (cab.kat === 'doska')  return floor - 880 * sc - H;
+  if (cab.kat === 'zastena') return floor - 1500 * sc;
+  return floor - H;
+}
+
+// Výška zásteny = od vrchu dosky (920mm) po spodok horných skriniek (1500mm)
+function getZastenaV() {
+  return 1500 - 920; // 580mm
+}
+
+// ---- DRAG NA CANVASE ----
+let draggingCabId = null;
+let dragOffsetX = 0;
+let mouseDownMoved = false;
+let lastMx = 0; // sledujeme smer pohybu
+
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const my = (e.clientY - rect.top) * scaleX;
+  const sc = getWallScale();
+  mouseDownMoved = false;
+  lastMx = 0;
+
+  for (let i = cabinets.length - 1; i >= 0; i--) {
+    const cab = cabinets[i];
+    const x0 = getCabGeom(cab).x0;
+    const W = cab.s * sc;
+    const y0 = getCabY(cab);
+    const H = cab.v * sc;
+    if (mx >= x0 - 4 && mx <= x0 + W + 4 && my >= y0 - 4 && my <= y0 + H + 4) {
+      draggingCabId = cab.id;
+      dragOffsetX = mx - x0;
+      selectedId = cab.id;
+      canvas.style.cursor = 'grabbing';
+      showEditor();
+      redraw();
+      calcAll();
+      break;
+    }
+  }
+});
+
+canvas.addEventListener('mousemove', e => {
+  if (!draggingCabId) {
+    // Kurzor — ukáž grab ak je nad skrinkou
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleX;
+    const sc = getWallScale();
+    let overCab = false;
+    cabinets.forEach(cab => {
+      const x0 = getCabGeom(cab).x0;
+      const y0 = getCabY(cab);
+      if (mx >= x0 && mx <= x0 + cab.s*sc && my >= y0 && my <= y0 + cab.v*sc) overCab = true;
+    });
+    canvas.style.cursor = overCab ? 'grab' : 'default';
+    return;
+  }
+  mouseDownMoved = true;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const mx = (e.clientX - rect.left) * scaleX;
+  const sc = getWallScale();
+  const cab = cabinets.find(c => c.id === draggingCabId);
+  if (!cab) return;
+
+  const dragDir = mx - lastMx; // kladné = ťaháme doprava, záporné = doľava
+  lastMx = mx;
+
+  const cabGeom = getCabGeom(cab);
+  const dxOff = cabGeom.dx; // predná hrana je posunutá o -dx od zadného rohu
+  let newWallX = Math.max(0, Math.round((mx - dragOffsetX - 60 + dxOff) / sc));
+
+  // SNAP — podľa smeru pohybu vyber ktorú stranu snapnúť
+  const SNAP_MM = 80;
+  for (const other of cabinets) {
+    if (other.id === draggingCabId) continue;
+    const oLeft = other.wallX;
+    const oRight = other.wallX + other.s;
+    const cabRight = newWallX + cab.s;
+
+    if (dragDir >= 0) {
+      // Ťaháme doprava → pravý okraj ťahanej sa prilepí k ľavému okraju suseda
+      if (Math.abs(cabRight - oLeft) < SNAP_MM) {
+        newWallX = oLeft - cab.s;
+        break;
+      }
+    } else {
+      // Ťaháme doľava → ľavý okraj ťahanej sa prilepí k pravému okraju suseda
+      if (Math.abs(newWallX - oRight) < SNAP_MM) {
+        newWallX = oRight;
+        break;
+      }
+    }
+  }
+
+  const dxMm = cab.h * 0.30 * Math.cos(Math.PI / 6);
+  const maxWallX = (currentWall === 'L')
+    ? getWallUsableWidth() - cab.s + dxMm
+    : getWallUsableWidth() - cab.s;
+  cab.wallX = Math.max(getCornerOffset(), Math.min(maxWallX, newWallX));
+  redraw();
+});
+
+canvas.addEventListener('mouseup', e => {
+  const wasDragging = draggingCabId && mouseDownMoved;
+  draggingCabId = null;
+  canvas.style.cursor = 'default';
+
+  // Ak to bol len klik (nie drag) — vyber/zruš výber
+  if (!wasDragging) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleX;
+    const sc = getWallScale();
+    let hit = null;
+    for (let i = cabinets.length - 1; i >= 0; i--) {
+      const cab = cabinets[i];
+      const x0 = getCabGeom(cab).x0;
+      const y0 = getCabY(cab);
+      if (mx >= x0-4 && mx <= x0+cab.s*sc+4 && my >= y0-4 && my <= y0+cab.v*sc+4) {
+        hit = cab.id; break;
+      }
+    }
+    if (hit !== null) { selectedId = hit; showEditor(); calcAll(); }
+    else { selectedId = null; hideEditor(); }
+    redraw();
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  draggingCabId = null;
+  canvas.style.cursor = 'default';
+});
+
+// ── TOUCH PODPORA (iPad / iPhone) ──
+function getTouchPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const t = e.touches[0] || e.changedTouches[0];
+  return {
+    mx: (t.clientX - rect.left) * scaleX,
+    my: (t.clientY - rect.top)  * scaleX,
+  };
+}
+
+canvas.addEventListener('touchstart', e => {
+  const { mx, my } = getTouchPos(e);
+  const sc = getWallScale();
+  mouseDownMoved = false;
+  lastMx = mx;
+
+  for (let i = cabinets.length - 1; i >= 0; i--) {
+    const cab = cabinets[i];
+    const x0 = getCabGeom(cab).x0;
+    const W = cab.s * sc;
+    const y0 = getCabY(cab);
+    const H = cab.v * sc;
+    if (mx >= x0 - 8 && mx <= x0 + W + 8 && my >= y0 - 8 && my <= y0 + H + 8) {
+      draggingCabId = cab.id;
+      dragOffsetX = mx - x0;
+      selectedId = cab.id;
+      showEditor();
+      redraw();
+      calcAll();
+      e.preventDefault(); // zabraň scrollovaniu počas drag
+      break;
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  if (!draggingCabId) return;
+  e.preventDefault();
+  mouseDownMoved = true;
+  const { mx } = getTouchPos(e);
+  const sc = getWallScale();
+  const cab = cabinets.find(c => c.id === draggingCabId);
+  if (!cab) return;
+
+  const dragDir = mx - lastMx;
+  lastMx = mx;
+
+  const cabGeom = getCabGeom(cab);
+  const dxOff = cabGeom.dx;
+  let newWallX = Math.max(0, Math.round((mx - dragOffsetX - 60 + dxOff) / sc));
+
+  const SNAP_MM = 80;
+  for (const other of cabinets) {
+    if (other.id === draggingCabId) continue;
+    const oLeft = other.wallX;
+    const oRight = other.wallX + other.s;
+    const cabRight = newWallX + cab.s;
+    if (dragDir >= 0) {
+      if (Math.abs(cabRight - oLeft) < SNAP_MM) { newWallX = oLeft - cab.s; break; }
+    } else {
+      if (Math.abs(newWallX - oRight) < SNAP_MM) { newWallX = oRight; break; }
+    }
+  }
+
+  const dxMm = cab.h * 0.30 * Math.cos(Math.PI / 6);
+  const maxWallX = (currentWall === 'L')
+    ? getWallUsableWidth() - cab.s + dxMm
+    : getWallUsableWidth() - cab.s;
+  cab.wallX = Math.max(getCornerOffset(), Math.min(maxWallX, newWallX));
+  redraw();
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  const wasDragging = draggingCabId && mouseDownMoved;
+  draggingCabId = null;
+
+  if (!wasDragging) {
+    const { mx, my } = getTouchPos(e);
+    const sc = getWallScale();
+    let hit = null;
+    for (let i = cabinets.length - 1; i >= 0; i--) {
+      const cab = cabinets[i];
+      const x0 = getCabGeom(cab).x0;
+      const y0 = getCabY(cab);
+      if (mx >= x0-8 && mx <= x0+cab.s*sc+8 && my >= y0-8 && my <= y0+cab.v*sc+8) {
+        hit = cab.id; break;
+      }
+    }
+    if (hit !== null) { selectedId = hit; showEditor(); calcAll(); }
+    else { selectedId = null; hideEditor(); }
+    redraw();
+  }
+});
+
+function getCabGeom(cab) {
+  const sc = getWallScale();
+  const D  = cab.h * sc * 0.30;
+  const dx =  D * Math.cos(Math.PI / 6);
+  const dy = -D * Math.sin(Math.PI / 6);
+  const margin = 60;
+
+  // Doska a zástena musia mať predný okraj zarovnaný so spodnými skrinkami (h=510mm)
+  // Spodná skriňa: dx_spodna = 510*sc*0.30*cos(30°)
+  const refH = (cab.kat === 'doska' || cab.kat === 'zastena') ? 510 : cab.h;
+  const refD  = refH * sc * 0.30;
+  const refDx = refD * Math.cos(Math.PI / 6);
+
+  const x0 = margin + cab.wallX * sc - refDx;
+  const W  = cab.s * sc;
+  const H  = cab.v * sc;
+  const nH = (cab.kat === 'spodna' || cab.kat === 'vysoka') ? 100 * sc : 0;
+  const y0 = getCabY(cab);
+  const hasRight = cabinets.some(o => o.id !== cab.id && Math.abs(o.wallX - (cab.wallX + cab.s)) < 5);
+  const hasLeft  = cabinets.some(o => o.id !== cab.id && Math.abs((o.wallX + o.s) - cab.wallX) < 5);
+  const dekorK = DEKORY.find(d => d.id === cab.korpus);
+  const dekorD = DEKORY.find(d => d.id === cab.dvierka);
+  const kClr = dekorK ? dekorK.farba : '#f8f8f8';
+  const dClr = dekorD ? dekorD.farba : '#f0f0f0';
+  return { sc, x0, W, H, D, nH, y0, dx, dy, hasRight, hasLeft, kClr, dClr };
+}
+
+function drawCabinetBack(cab) {
+  // Zástena a doska nemajú viditeľnú hĺbku vzadu
+  if (cab.kat === 'zastena' || cab.kat === 'doska') return;
+
+  const { sc, x0, W, H, nH, y0, dx, dy, hasRight, hasLeft, kClr } = getCabGeom(cab);
+  const outline = '#b0a080';
+
+  // Nožičky
+  if (nH > 0) {
+    ctx.fillStyle = '#c8c8c8';
+    ctx.fillRect(x0 + 8,      y0 + H, 5, nH * 0.85);
+    ctx.fillRect(x0 + W - 14, y0 + H, 5, nH * 0.85);
+  }
+
+  // Zadná plocha
+  ctx.fillStyle = shadeClr(kClr, -35);
+  ctx.strokeStyle = outline; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x0+dx,    y0+dy);
+  ctx.lineTo(x0+W+dx,  y0+dy);
+  ctx.lineTo(x0+W+dx,  y0+H+dy);
+  ctx.lineTo(x0+dx,    y0+H+dy);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Horná plocha
+  ctx.fillStyle = shadeClr(kClr, -12);
+  ctx.beginPath();
+  ctx.moveTo(x0,      y0);
+  ctx.lineTo(x0+dx,   y0+dy);
+  ctx.lineTo(x0+W+dx, y0+dy);
+  ctx.lineTo(x0+W,    y0);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // Pravá bočná stena — len ak nie je pravý sused
+  if (!hasRight) {
+    ctx.fillStyle = shadeClr(kClr, -22);
+    ctx.beginPath();
+    ctx.moveTo(x0+W,    y0);
+    ctx.lineTo(x0+W+dx, y0+dy);
+    ctx.lineTo(x0+W+dx, y0+H+dy);
+    ctx.lineTo(x0+W,    y0+H);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+  }
+}
+
+function drawCabinetFront(cab, highlighted) {
+  const { sc, x0, W, H, nH, y0, dx, dy, hasRight, hasLeft, kClr, dClr } = getCabGeom(cab);
+  const outline = highlighted ? '#2a4a1e' : '#b0a080';
+  const lw = highlighted ? 2 : 1;
+
+  // ── ZÁSTENA — pri stene, za pracovnou doskou (hĺbka dosky = 650mm) ──
+  if (cab.kat === 'zastena') {
+    const doskaDep = 650 * sc * 0.30;
+    const offX =  doskaDep * Math.cos(Math.PI / 6);
+    const offY = -doskaDep * Math.sin(Math.PI / 6);
+
+    const zx = x0 + offX;
+    const zy = y0 + offY;
+
+    ctx.fillStyle = dClr;
+    ctx.strokeStyle = highlighted ? '#2a4a1e' : '#a08060';
+    ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.rect(zx, zy, W, H); ctx.fill(); ctx.stroke();
+
+    // Horná hrana (minimálna — je to tenká doska)
+    const ddx2 = 3 * Math.cos(Math.PI / 6);
+    const ddy2 = -3 * Math.sin(Math.PI / 6);
+    ctx.fillStyle = shadeClr(dClr, -15);
+    ctx.beginPath();
+    ctx.moveTo(zx, zy); ctx.lineTo(zx+ddx2, zy+ddy2);
+    ctx.lineTo(zx+W+ddx2, zy+ddy2); ctx.lineTo(zx+W, zy);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    if (highlighted) {
+      ctx.strokeStyle = '#2a4a1e'; ctx.lineWidth = 2;
+      ctx.setLineDash([5,3]);
+      ctx.strokeRect(zx-3, zy-3, W+6, H+6);
+      ctx.setLineDash([]);
+    }
+    return;
+  }
+
+  // Predná plocha korpusu
+  ctx.fillStyle = kClr;
+  ctx.strokeStyle = outline; ctx.lineWidth = lw;
+  ctx.beginPath();
+  ctx.rect(x0, y0, W, H);
+  ctx.fill(); ctx.stroke();
+
+  if (cab.kat !== 'doska') {
+    const ov = 2 * sc;
+    const dX = hasLeft  ? x0 : x0 - ov;
+    const dW = W + (hasLeft ? 0 : ov) + (hasRight ? 0 : ov);
+    const dY = y0;
+    const dH = H;
+
+    if (highlighted) {
+      // ── SELECTED ──
+
+      if (!cab.hasDrawer) {
+        // Police — spodná 2×, horná 4×
+        const shelfFracs = cab.kat === 'horna' ? [0.2, 0.4, 0.6, 0.8] : [0.33, 0.66];
+        shelfFracs.forEach(frac => {
+          const shelfY = dY + dH * frac;
+          const shelfH = 4 * sc;
+          ctx.fillStyle = shadeClr(kClr, -15);
+          ctx.fillRect(x0 + 2, shelfY, W - 4, shelfH);
+          ctx.strokeStyle = '#b0a080'; ctx.lineWidth = 0.8;
+          ctx.strokeRect(x0 + 2, shelfY, W - 4, shelfH);
+          ctx.fillStyle = shadeClr(kClr, -28);
+          ctx.beginPath();
+          ctx.moveTo(x0+2,          shelfY);
+          ctx.lineTo(x0+2+dx*0.4,   shelfY+dy*0.4);
+          ctx.lineTo(x0+W-4+dx*0.4, shelfY+dy*0.4);
+          ctx.lineTo(x0+W-4,        shelfY);
+          ctx.closePath();
+          ctx.fill(); ctx.stroke();
+        });
+
+        // Pánty — krúžky
+        const dvS = cab.s - 3, dvV = cab.v - 5;
+        const pantInfo = calcPanty(dvV, dvS);
+        const pantCount = pantInfo.pocet;
+        const pantPositions = pantCount === 2 ? [0.25, 0.75]
+          : pantCount === 3 ? [0.15, 0.5, 0.85]
+          : pantCount === 4 ? [0.1, 0.37, 0.63, 0.9]
+          : [0.1, 0.3, 0.5, 0.7, 0.9];
+        const handleOnLeft = (cab.doorSide === 'prava');
+        const pantDoorX = handleOnLeft ? dX + dW - 25*sc : dX + 25*sc;
+        const pantR = 25 * sc;
+        pantPositions.forEach(p => {
+          const pY = dY + dH * p;
+          ctx.fillStyle = '#d8d0c0';
+          ctx.strokeStyle = '#a09070'; ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(pantDoorX, pY, pantR, 0, Math.PI*2);
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = '#b0a890';
+          ctx.beginPath();
+          ctx.arc(pantDoorX, pY, pantR * 0.45, 0, Math.PI*2);
+          ctx.fill();
+        });
+
+        // Dvierka priesvitné
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.strokeStyle = 'rgba(160,144,112,0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.rect(dX, dY, dW, dH); ctx.fill(); ctx.stroke();
+
+        // Horná hrana dvierok (tenká, priesvitná)
+        const dDEP = 2 * sc;
+        const ddx = dDEP * Math.cos(Math.PI / 6);
+        const ddy = -dDEP * Math.sin(Math.PI / 6);
+        ctx.fillStyle = 'rgba(200,190,170,0.25)';
+        ctx.beginPath();
+        ctx.moveTo(dX, dY); ctx.lineTo(dX+ddx, dY+ddy);
+        ctx.lineTo(dX+dW+ddx, dY+ddy); ctx.lineTo(dX+dW, dY);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Úchytka
+        const hX = handleOnLeft ? dX + 10*sc : dX + dW - 16*sc;
+        const hY = dY + dH * 0.42;
+        ctx.fillStyle = '#aaa'; ctx.strokeStyle = '#888'; ctx.lineWidth = 0.8;
+        ctx.beginPath(); ctx.roundRect(hX, hY, 6*sc, 24*sc, 3); ctx.fill(); ctx.stroke();
+
+      } else {
+        // ── MERIVOBOX highlighted — 3 zásuvky plne nakreslené ──
+        const celoM = 160 * sc;
+        const celoE = (dH - celoM - 3*3*sc) / 2;
+        const zGaps   = [0, celoM + 3*sc, celoM + 3*sc + celoE + 3*sc];
+        const zHeights = [celoM, celoE, celoE];
+        const dClrZ = dClr;
+
+        zGaps.forEach((gapY, i) => {
+          const zY = dY + gapY;
+          const zH = zHeights[i];
+          const isM = i === 0;
+
+          // Výplň čela — plná farba dekóru
+          ctx.fillStyle = dClrZ;
+          ctx.strokeStyle = '#8a7860'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.rect(dX, zY, dW, zH); ctx.fill(); ctx.stroke();
+
+          // Horná hrana čela (axon hĺbka)
+          const dep = 3 * sc;
+          const ex = dep * Math.cos(Math.PI/6);
+          const ey = -dep * Math.sin(Math.PI/6);
+          ctx.fillStyle = shadeClr(dClrZ, -12);
+          ctx.beginPath();
+          ctx.moveTo(dX, zY); ctx.lineTo(dX+ex, zY+ey);
+          ctx.lineTo(dX+dW+ex, zY+ey); ctx.lineTo(dX+dW, zY);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+
+          // Vnútro zásuvky (viditeľné cez priesvitné čelo)
+          ctx.fillStyle = 'rgba(245,240,230,0.55)';
+          ctx.fillRect(dX + 4*sc, zY + 4*sc, dW - 8*sc, zH - 8*sc);
+
+          // Blum rail — tenká horizontálna linka v spodnej tretine
+          const railY = zY + zH * 0.72;
+          ctx.strokeStyle = 'rgba(140,130,120,0.6)'; ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(dX + 6*sc, railY);
+          ctx.lineTo(dX + dW - 6*sc, railY);
+          ctx.stroke();
+
+          // Úchytka — Blum profil (plochá, celá šírka)
+          const uhH = Math.max(6*sc, zH * 0.18);
+          const uhY = zY + (zH - uhH) / 2;
+          const uhPad = dW * 0.08;
+          // Profil tieň
+          ctx.fillStyle = 'rgba(0,0,0,0.08)';
+          ctx.fillRect(dX + uhPad + 1, uhY + 2, dW - uhPad*2, uhH);
+          // Profil telo — strieborná
+          const grad = ctx.createLinearGradient(dX, uhY, dX, uhY + uhH);
+          grad.addColorStop(0,   '#e8e4de');
+          grad.addColorStop(0.3, '#d0ccc4');
+          grad.addColorStop(0.7, '#b8b4ac');
+          grad.addColorStop(1,   '#c8c4bc');
+          ctx.fillStyle = grad;
+          ctx.strokeStyle = '#a09888'; ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.roundRect(dX + uhPad, uhY, dW - uhPad*2, uhH, 2);
+          ctx.fill(); ctx.stroke();
+
+          // Label M / E
+          ctx.fillStyle = 'rgba(80,70,60,0.7)';
+          ctx.font = `bold ${Math.max(7, 9*sc)}px sans-serif`;
+          ctx.textAlign = 'right';
+          ctx.fillText(isM ? 'M' : 'E', dX + dW - 4*sc, zY + zH * 0.38);
+          ctx.textAlign = 'left';
+        });
+      } // end hasDrawer
+
+      // Highlight obrys (vždy)
+      ctx.strokeStyle = '#2a4a1e';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 3]);
+      ctx.strokeRect(dX - 3, dY - 3, dW + 6, dH + 6);
+      ctx.setLineDash([]);
+
+    } else {
+      // ── NORMÁLNE: plné dvierka alebo Merivobox zásuvky ──
+
+      if (cab.hasDrawer) {
+        // Merivobox — 3 zásuvky: M navrchu (160mm), 2×E pod ním
+        const celoM = 160 * sc;
+        const zvysok = dH - celoM;
+        const celoE = (zvysok - 3*3*sc) / 2;
+        const gaps = [0, celoM + 3*sc, celoM + 3*sc + celoE + 3*sc];
+        const heights = [celoM, celoE, celoE];
+        gaps.forEach((gapY, i) => {
+          const zY = dY + gapY;
+          const zH = heights[i];
+          // Tieň
+          ctx.fillStyle = 'rgba(0,0,0,0.04)';
+          ctx.fillRect(dX + 2, zY + 2, dW, zH);
+          // Čelo zásuvky
+          ctx.fillStyle = dClr;
+          ctx.strokeStyle = '#a09070'; ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.rect(dX, zY, dW, zH); ctx.fill(); ctx.stroke();
+          // Horná hrana
+          const dDEP2 = 2 * sc;
+          const ddx2 = dDEP2 * Math.cos(Math.PI / 6);
+          const ddy2 = -dDEP2 * Math.sin(Math.PI / 6);
+          ctx.fillStyle = shadeClr(dClr, -10);
+          ctx.beginPath();
+          ctx.moveTo(dX, zY); ctx.lineTo(dX+ddx2, zY+ddy2);
+          ctx.lineTo(dX+dW+ddx2, zY+ddy2); ctx.lineTo(dX+dW, zY);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          // Úchytka horizontálna
+          const uhX = dX + dW * 0.2;
+          const uhY = zY + zH * 0.5;
+          ctx.fillStyle = '#999'; ctx.strokeStyle = '#777'; ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.roundRect(uhX, uhY - 3*sc, dW * 0.6, 6*sc, 3);
+          ctx.fill(); ctx.stroke();
+        });
+        // Bočná hrana vpravo
+        if (!hasRight) {
+          const dDEP2 = 2 * sc;
+          const ddx2 = dDEP2 * Math.cos(Math.PI / 6);
+          const ddy2 = -dDEP2 * Math.sin(Math.PI / 6);
+          ctx.fillStyle = shadeClr(dClr, -18);
+          ctx.beginPath();
+          ctx.moveTo(dX+dW, dY); ctx.lineTo(dX+dW+ddx2, dY+ddy2);
+          ctx.lineTo(dX+dW+ddx2, dY+dH+ddy2); ctx.lineTo(dX+dW, dY+dH);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+
+      } else {
+        // Tieň
+        ctx.fillStyle = 'rgba(0,0,0,0.05)';
+        ctx.fillRect(dX + 2, dY + 2, dW, dH);
+
+        // Dvierka
+        ctx.fillStyle = dClr;
+        ctx.strokeStyle = '#a09070'; ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.rect(dX, dY, dW, dH);
+        ctx.fill(); ctx.stroke();
+
+        // Horná hrana
+        const dDEP = 2 * sc;
+        const ddx = dDEP * Math.cos(Math.PI / 6);
+        const ddy = -dDEP * Math.sin(Math.PI / 6);
+        ctx.fillStyle = shadeClr(dClr, -10);
+        ctx.beginPath();
+        ctx.moveTo(dX, dY); ctx.lineTo(dX+ddx, dY+ddy);
+        ctx.lineTo(dX+dW+ddx, dY+ddy); ctx.lineTo(dX+dW, dY);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Pravá bočná hrana
+        if (!hasRight) {
+          ctx.fillStyle = shadeClr(dClr, -18);
+          ctx.beginPath();
+          ctx.moveTo(dX+dW, dY); ctx.lineTo(dX+dW+ddx, dY+ddy);
+          ctx.lineTo(dX+dW+ddx, dY+dH+ddy); ctx.lineTo(dX+dW, dY+dH);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+
+        // Úchytka
+        const handleOnLeft = (cab.doorSide === 'prava');
+        const hX = handleOnLeft ? dX + 10*sc : dX + dW - 16*sc;
+        const hY = dY + dH * 0.42;
+        ctx.fillStyle = '#999';
+        ctx.strokeStyle = '#777'; ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.roundRect(hX, hY, 6*sc, 24*sc, 3);
+        ctx.fill(); ctx.stroke();
+      }
+    }
+
+  } else {
+    // ── PRACOVNÁ DOSKA — hĺbka 650mm, x0 je predný okraj (zarovnaný so skrinkami) ──
+    // Celková axon hĺbka = 650mm * sc * 0.30
+    const fullDep = cab.h * sc * 0.30;   // 650*sc*0.30
+    const ddxD = fullDep * Math.cos(Math.PI / 6);
+    const ddyD = -fullDep * Math.sin(Math.PI / 6);
+
+    // Orez — nájdi najbližšiu vysokú skrinku vpravo od dosky
+    const doskaPravyOkraj = cab.wallX + cab.s;
+    const vysokePravo = cabinets.filter(v =>
+      v.kat === 'vysoka' && v.wallX >= doskaPravyOkraj - 10
+    );
+    const clipAtX = vysokePravo.length > 0
+      ? Math.min(...vysokePravo.map(v => getCabGeom(v).x0))
+      : Infinity;
+
+    ctx.save();
+    if (clipAtX !== Infinity) {
+      ctx.beginPath();
+      ctx.rect(0, -200, clipAtX, canvas.height + 400);
+      ctx.clip();
+    }
+
+    // Zadná plocha (vzadu)
+    ctx.fillStyle = shadeClr('#c8a06a', -30);
+    ctx.strokeStyle = '#a07040'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x0+ddxD,   y0+ddyD); ctx.lineTo(x0+W+ddxD, y0+ddyD);
+    ctx.lineTo(x0+W+ddxD, y0+H+ddyD); ctx.lineTo(x0+ddxD, y0+H+ddyD);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Horná plocha — od predného okraja (x0) dozadu (x0+ddxD)
+    ctx.fillStyle = '#d4aa74';
+    ctx.beginPath();
+    ctx.moveTo(x0, y0); ctx.lineTo(x0+ddxD, y0+ddyD);
+    ctx.lineTo(x0+W+ddxD, y0+ddyD); ctx.lineTo(x0+W, y0);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Predná čelná hrana
+    ctx.fillStyle = '#c8a06a';
+    ctx.beginPath(); ctx.rect(x0, y0, W, H); ctx.fill(); ctx.stroke();
+
+    // Pravá bočná hrana
+    if (clipAtX === Infinity) {
+      ctx.fillStyle = shadeClr('#c8a06a', -18);
+      ctx.beginPath();
+      ctx.moveTo(x0+W, y0); ctx.lineTo(x0+W+ddxD, y0+ddyD);
+      ctx.lineTo(x0+W+ddxD, y0+H+ddyD); ctx.lineTo(x0+W, y0+H);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+
+    ctx.restore();
+
+    if (highlighted) {
+      ctx.strokeStyle = '#2a4a1e'; ctx.lineWidth = 2;
+      ctx.setLineDash([5,3]);
+      ctx.strokeRect(x0-3, y0-3, W+6, H+6);
+      ctx.setLineDash([]);
+    }
+  }
+
+  // Rozmer label
+  ctx.fillStyle = '#999';
+  ctx.font = `${Math.max(9, 10*zoom)}px DM Mono, monospace`;
+  ctx.fillText(`${cab.s} mm`, x0 + W/2 - 16, y0 + H + nH + 16);
+}
+
+// Stará funkcia — presmeruj na novú
+function drawCabinet(cab, highlighted) {
+  drawCabinetBack(cab);
+  drawCabinetFront(cab, highlighted);
+}
+
+function redraw() {
+  cabinets = walls[currentWall].cabinets;
+
+  // Nastav canvas na celú dostupnú plochu
+  const wrap = document.getElementById('canvas-wrap');
+  canvas.width  = wrap.clientWidth  || 900;
+  canvas.height = wrap.clientHeight || 580;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const sc = getWallScale();
+  const wallW = walls[currentWall].width;
+
+  // Rozmery miestnosti
+  const WALL_H = 2600; // mm výška
+  const SIDE_D = 700;  // mm hĺbka bočných stien (vizuálna)
+
+  // Axon offset pre bočné steny: idú DOPREDU = doprava-dole v axonometrii
+  const dep  = SIDE_D * sc * 0.55;
+  const depX =  dep * Math.cos(Math.PI / 6);  // doprava
+  const depY =  dep * Math.sin(Math.PI / 6);  // dole
+
+  const margin = 60;
+  const x0    = margin;
+  const xW    = x0 + wallW * sc;
+  const yFloor = canvas.height - 50;
+  const yWall  = yFloor - WALL_H * sc;
+
+  // ── Ľavá bočná stena (ide doľava-dopredu od x0) ──
+  ctx.fillStyle = '#ddd8d0';
+  ctx.beginPath();
+  ctx.moveTo(x0,        yWall);
+  ctx.lineTo(x0 - depX, yWall + depY);
+  ctx.lineTo(x0 - depX, yFloor + depY);
+  ctx.lineTo(x0,        yFloor);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1; ctx.stroke();
+
+  // ── Pravá bočná stena (ide doprava-dopredu od xW) ──
+  ctx.fillStyle = '#ddd8d0';
+  ctx.beginPath();
+  ctx.moveTo(xW,        yWall);
+  ctx.lineTo(xW + depX, yWall + depY);
+  ctx.lineTo(xW + depX, yFloor + depY);
+  ctx.lineTo(xW,        yFloor);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1; ctx.stroke();
+
+  // ── Podlaha ──
+  ctx.fillStyle = '#e8e0cc';
+  ctx.beginPath();
+  ctx.moveTo(x0,        yFloor);
+  ctx.lineTo(x0 - depX, yFloor + depY);
+  ctx.lineTo(xW + depX, yFloor + depY);
+  ctx.lineTo(xW,        yFloor);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.10)'; ctx.lineWidth = 1; ctx.stroke();
+
+  // ── Zadná stena ──
+  ctx.fillStyle = '#f2ede6';
+  ctx.beginPath();
+  ctx.moveTo(x0, yWall);
+  ctx.lineTo(xW, yWall);
+  ctx.lineTo(xW, yFloor);
+  ctx.lineTo(x0, yFloor);
+  ctx.closePath();
+  ctx.fill();
+
+  // Grid na zadnej stene
+  ctx.strokeStyle = 'rgba(0,0,0,0.04)';
+  ctx.lineWidth = 1;
+  for (let x = x0; x <= xW; x += 50) {
+    ctx.beginPath(); ctx.moveTo(x, yWall); ctx.lineTo(x, yFloor); ctx.stroke();
+  }
+
+  // Okraje zadnej steny
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(x0, yWall); ctx.lineTo(xW, yWall); ctx.stroke(); // strop
+  ctx.beginPath(); ctx.moveTo(x0, yFloor); ctx.lineTo(xW, yFloor); ctx.stroke(); // podlaha
+  ctx.beginPath(); ctx.moveTo(x0, yWall); ctx.lineTo(x0, yFloor); ctx.stroke(); // ľavý roh
+  ctx.beginPath(); ctx.moveTo(xW, yWall); ctx.lineTo(xW, yFloor); ctx.stroke(); // pravý roh
+
+  // Dekoratívny pás podlahy
+  ctx.fillStyle = '#d4ccbc';
+  ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+  ctx.fillStyle = '#c4bcac';
+  ctx.fillRect(0, canvas.height - 52, canvas.width, 2);
+
+  // Label steny
+  ctx.fillStyle = '#bbb';
+  ctx.font = '10px DM Mono';
+  ctx.textAlign = 'left';
+  ctx.fillText(walls[currentWall].name.toUpperCase(), x0 + 8, yWall + 16);
+
+  // Dimenzia šírky steny
+  const dimY = canvas.height - 18;
+  ctx.strokeStyle = '#b0a898'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, dimY - 4); ctx.lineTo(x0, dimY + 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(xW, dimY - 4); ctx.lineTo(xW, dimY + 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x0, dimY); ctx.lineTo(xW, dimY); ctx.stroke();
+  ctx.fillStyle = '#999'; ctx.font = '10px DM Mono'; ctx.textAlign = 'center';
+  ctx.fillText(`${wallW} mm`, (x0 + xW) / 2, dimY + 10);
+  ctx.textAlign = 'left';
+
+  // ── ROHOVÝ DUCH — obsadený priestor zo steny B ──
+  if (currentWall !== 'C') {
+    const ghostCabs = ghostCabsOnB(currentWall);
+    for (const ghostCab of ghostCabs) {
+        const cabW = getCabDepthWithDoor(ghostCab.kat) * sc;
+        const cabH = ghostCab.v * sc;
+        const gY   = getCabY(ghostCab);
+
+        ctx.save();
+        ctx.globalAlpha = 0.28;
+
+        const dD  = ghostCab.h * sc * 0.30;
+        const ddx = dD * Math.cos(Math.PI / 6);
+        const ddy = -dD * Math.sin(Math.PI / 6);
+
+        if (currentWall === 'L') {
+          const gX = xW - cabW;
+          ctx.fillStyle = '#b8956a';
+          ctx.fillRect(gX, gY, cabW, cabH);
+          ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 1;
+          ctx.strokeRect(gX, gY, cabW, cabH);
+          ctx.fillStyle = '#c8a878';
+          ctx.beginPath();
+          ctx.moveTo(gX, gY); ctx.lineTo(gX + ddx, gY + ddy);
+          ctx.lineTo(gX + cabW + ddx, gY + ddy); ctx.lineTo(gX + cabW, gY);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.globalAlpha = 0.7;
+          ctx.fillStyle = '#6a4a1a'; ctx.font = '9px DM Mono'; ctx.textAlign = 'center';
+          ctx.fillText('Stena B', gX + cabW / 2, gY - 5);
+        } else {
+          const gX2 = x0 - ddx;
+          ctx.fillStyle = '#b8956a';
+          ctx.fillRect(gX2, gY, cabW, cabH);
+          ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 1;
+          ctx.strokeRect(gX2, gY, cabW, cabH);
+          ctx.fillStyle = '#c8a878';
+          ctx.beginPath();
+          ctx.moveTo(gX2, gY); ctx.lineTo(gX2 + ddx, gY + ddy);
+          ctx.lineTo(gX2 + cabW + ddx, gY + ddy); ctx.lineTo(gX2 + cabW, gY);
+          ctx.closePath(); ctx.fill(); ctx.stroke();
+          ctx.globalAlpha = 0.7;
+          ctx.fillStyle = '#6a4a1a'; ctx.font = '9px DM Mono'; ctx.textAlign = 'center';
+          ctx.fillText('Stena B', gX2 + cabW / 2, gY - 5);
+        }
+        ctx.restore();
+    }
+  }
+
+  // Poradie vykresľovania (painter's algorithm)
+  const sorted = [...cabinets].sort((a, b) => a.wallX - b.wallX);
+
+  // Live-update šírky a pozície dosky a zásteny podľa aktuálnych skriniek
+  const spodne = cabinets.filter(c => c.kat === 'spodna');
+  const vysoke = cabinets.filter(c => c.kat === 'vysoka');
+  if (spodne.length > 0) {
+    const minX = Math.min(...spodne.map(c => c.wallX));
+    const maxX = Math.max(...spodne.map(c => c.wallX + c.s));
+
+    let dRight = maxX;
+    vysoke.forEach(v => {
+      if (v.wallX + v.s >= maxX && v.wallX < dRight) dRight = v.wallX;
+    });
+    cabinets.filter(c => c.kat === 'doska').forEach(d => {
+      d.wallX = minX; d.s = dRight - minX;
+    });
+
+    let zLeft = minX, zRight = maxX;
+    vysoke.forEach(v => {
+      if (v.wallX <= zLeft && v.wallX + v.s > zLeft) zLeft = v.wallX + v.s;
+      if (v.wallX + v.s >= zRight && v.wallX < zRight) zRight = v.wallX;
+    });
+    cabinets.filter(c => c.kat === 'zastena').forEach(z => {
+      z.wallX = zLeft;
+      z.s = Math.max(0, zRight - zLeft);
+      z.v = getZastenaV();
+    });
+  }
+
+  sorted.filter(c => c.kat === 'zastena').forEach(cab => drawCabinetFront(cab, cab.id === selectedId));
+  sorted.filter(c => c.kat !== 'zastena' && c.kat !== 'doska').forEach(cab => drawCabinetBack(cab));
+  sorted.filter(c => c.kat !== 'zastena' && c.kat !== 'doska').forEach(cab => drawCabinetFront(cab, cab.id === selectedId));
+  sorted.filter(c => c.kat === 'doska').forEach(cab => drawCabinetFront(cab, cab.id === selectedId));
+
+  // SNAP indikátor
+  if (draggingCabId) {
+    const cab = cabinets.find(c => c.id === draggingCabId);
+    if (cab) {
+      for (const other of cabinets) {
+        if (other.id === draggingCabId) continue;
+        const cabRight = cab.wallX + cab.s;
+        const isSnappedRight = Math.abs(cabRight - other.wallX) < 2;
+        const isSnappedLeft  = Math.abs(cab.wallX - (other.wallX + other.s)) < 2;
+        if (isSnappedRight || isSnappedLeft) {
+          const lineX = 60 + (isSnappedRight ? other.wallX : (other.wallX + other.s)) * sc;
+          ctx.strokeStyle = '#3d6b2c';
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 3]);
+          ctx.beginPath();
+          ctx.moveTo(lineX, 0);
+          ctx.lineTo(lineX, canvas.height - 60);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#3d6b2c';
+          ctx.font = 'bold 10px DM Mono';
+          ctx.fillText('⊳ snap', lineX + 4, 20);
+        }
+      }
+    }
+  }
+}
+
+// ============================================================
+// EDITOR
+// ============================================================
+function setDoorSide(side) {
+  const cab = cabinets.find(c => c.id === selectedId);
+  if (!cab) return;
+  cab.doorSide = side;
+  document.getElementById('btn-lava').classList.toggle('active', side === 'lava');
+  document.getElementById('btn-prava').classList.toggle('active', side === 'prava');
+  redraw();
+}
+
+function showEditor() {
+  const cab = cabinets.find(c=>c.id===selectedId);
+  if (!cab) return;
+  document.getElementById('no-selection').style.display = 'none';
+  document.getElementById('cabinet-editor').classList.add('visible');
+  document.getElementById('detail-subtitle').textContent = cab.name;
+
+  document.getElementById('ed-sirka').value = cab.s;
+  document.getElementById('ed-vyska').value = cab.v;
+  document.getElementById('ed-hlbka').value = cab.h;
+
+  // Strana dvierok
+  const side = cab.doorSide || 'lava';
+  document.getElementById('btn-lava').classList.toggle('active', side === 'lava');
+  document.getElementById('btn-prava').classList.toggle('active', side === 'prava');
+
+  buildDekorGrid('ed-korpus-grid', cab.korpus, id => { cab.korpus = id; buildDekorGrid('ed-korpus-grid', id, arguments.callee); redraw(); calcEditorDiely(cab); calcAll(); });
+  buildDekorGrid('ed-dvierka-grid', cab.dvierka, id => { cab.dvierka = id; buildDekorGrid('ed-dvierka-grid', id, arguments.callee); redraw(); calcEditorDiely(cab); calcAll(); });
+
+  // Panel typ — len pre dosku a zástenu
+  const panelSec = document.getElementById('ed-panel-typ-section');
+  if (cab.kat === 'doska' || cab.kat === 'zastena') {
+    panelSec.style.display = '';
+    const typ = cab.panelTyp || 'full';
+    document.getElementById('ed-panel-full').classList.toggle('active', typ === 'full');
+    document.getElementById('ed-panel-half').classList.toggle('active', typ === 'half');
+  } else {
+    panelSec.style.display = 'none';
+  }
+
+  calcEditorDiely(cab);
+}
+
+function hideEditor() {
+  document.getElementById('no-selection').style.display = '';
+  document.getElementById('cabinet-editor').classList.remove('visible');
+  document.getElementById('detail-subtitle').textContent = 'Vyber skrinku';
+}
+
+function buildDekorGrid(gridId, activeId, onSelect) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  DEKORY.forEach(d => {
+    const btn = document.createElement('div');
+    btn.className = 'dekor-mini-btn' + (d.id === activeId ? ' active' : '');
+    btn.innerHTML = `<div class="dekor-swatch" style="background:${d.farba}"></div><div class="dekor-mini-name">${d.name}<br><span style="color:var(--accent2)">${d.cena}€</span></div>`;
+    btn.onclick = () => onSelect(d.id);
+    grid.appendChild(btn);
+  });
+}
+
+function setPanelTyp(typ) {
+  const cab = cabinets.find(c => c.id === selectedId);
+  if (!cab) return;
+  cab.panelTyp = typ;
+  document.getElementById('ed-panel-full').classList.toggle('active', typ === 'full');
+  document.getElementById('ed-panel-half').classList.toggle('active', typ === 'half');
+  calcAll();
+}
+
+function updateSelected() {
+  const cab = cabinets.find(c=>c.id===selectedId);
+  if (!cab) return;
+  cab.s = parseInt(document.getElementById('ed-sirka').value) || cab.s;
+  cab.v = parseInt(document.getElementById('ed-vyska').value) || cab.v;
+  cab.h = parseInt(document.getElementById('ed-hlbka').value) || cab.h;
+  redraw();
+  calcEditorDiely(cab);
+  calcAll();
+}
+
+function deleteSelected() {
+  walls[currentWall].cabinets = walls[currentWall].cabinets.filter(c => c.id !== selectedId);
+  cabinets = walls[currentWall].cabinets;
+  selectedId = null;
+  hideEditor();
+  redraw();
+  calcAll();
+  if (cabinets.length === 0) document.getElementById('drop-hint').style.opacity = '1';
+}
+
+// ============================================================
+// DIELY & PÁNTY
+// ============================================================
+function getDiely(cab) {
+  const S = cab.s, V = cab.v, H = cab.h;
+  const vnutS = S - 2*D;
+  const diely = [];
+
+  if (cab.kat === 'doska') {
+    diely.push({n:'Pracovná doska', w:S, h:H, ks:1, mat:'dtd'});
+    return diely;
+  }
+  if (cab.kat === 'zastena') {
+    diely.push({n:'Zástena', w:S, h:H, ks:1, mat:'dtd'});
+    return diely;
+  }
+
+  // Spoločné diely pre všetky skrinky
+  const bokAbs = cab.kat === 'horna' ? 'o2' : 'o';
+  diely.push({n:'Bok ľavý',  w:V, h:H, ks:1, mat:'dtd', abs:bokAbs, absDekor: cab.korpus});
+  diely.push({n:'Bok pravý', w:V, h:H, ks:1, mat:'dtd', abs:bokAbs, absDekor: cab.korpus});
+  diely.push({n:'Dno',       w:vnutS, h:H, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+  diely.push({n:'Chrbát',    w:vnutS, h:V, ks:1, mat:'sololit'});
+
+  if (cab.kat === 'spodna') {
+    diely.push({n:'Vzpera vzadu',  w:vnutS, h:100, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+    diely.push({n:'Vzpera vpredu', w:vnutS, h:100, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+
+    if (cab.hasDrawer) {
+      const zasS  = vnutS - 51;
+      const celoM = 160;
+      const celoE = Math.floor((V - celoM - 3*3) / 2);
+      diely.push({n:'Dno zásuvky M',    w:zasS, h:H-51, ks:1, mat:'dtd_biela'});
+      diely.push({n:'Dno zásuvky E',    w:zasS, h:H-51, ks:2, mat:'dtd_biela'});
+      diely.push({n:'Chrbát zásuvky M', w:zasS, h:83,   ks:1, mat:'dtd_biela', abs:'o', absDekor: cab.korpus});
+      diely.push({n:'Chrbát zásuvky E', w:zasS, h:184,  ks:2, mat:'dtd_biela', abs:'o', absDekor: cab.korpus});
+      diely.push({n:'Čelo M 160mm',     w:S-3,  h:celoM,ks:1, mat:'dvierka', abs:'oo'});
+      diely.push({n:'Čelo E',           w:S-3,  h:celoE,ks:2, mat:'dvierka', abs:'oo'});
+      // žiadne dvierka, žiadne police, žiadne pánty
+    } else {
+      const policaH = H - 10;
+      diely.push({n:'Polica 1', w:vnutS, h:policaH, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+      diely.push({n:'Polica 2', w:vnutS, h:policaH, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+      // dvierka
+      const dvS = S - 3, dvV = V - 5;
+      diely.push({n:'Dvierka', w:dvV, h:dvS, ks:1, mat:'dvierka', abs:'oo'});
+    }
+  } else {
+    // Horná a vysoká — plný vrch
+    diely.push({n:'Vrch', w:vnutS, h:H, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+    // Police — horná skriňa má 4 police
+    if (cab.kat === 'horna') {
+      const policaH = H - 10;
+      diely.push({n:'Polica 1', w:vnutS, h:policaH, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+      diely.push({n:'Polica 2', w:vnutS, h:policaH, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+      diely.push({n:'Polica 3', w:vnutS, h:policaH, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+      diely.push({n:'Polica 4', w:vnutS, h:policaH, ks:1, mat:'dtd', abs:'o', absDekor: cab.korpus});
+    }
+    // dvierka
+    const dvS = S - 3, dvV = V - 5;
+    diely.push({n:'Dvierka', w:dvV, h:dvS, ks:1, mat:'dvierka', abs:'oo'});
+  }
+
+  return diely;
+}
+
+function calcPanty(dvierkaV, dvierkaS) {
+  const plocha = (dvierkaV/1000)*(dvierkaS/1000);
+  const kg = plocha * HUSTOTA;
+  let p = 2;
+  if (kg > 17) p = 5;
+  else if (kg > 12) p = 4;
+  else if (kg > 6) p = 3;
+  return {pocet: p, kg: kg.toFixed(2), plocha: plocha.toFixed(4)};
+}
+
+function calcEditorDiely(cab) {
+  const diely = getDiely(cab);
+  const tbody = document.getElementById('ed-diely');
+  tbody.innerHTML = '';
+  diely.forEach(d => {
+    const m2 = (d.w/1000)*(d.h/1000)*d.ks;
+    const tag = d.mat === 'sololit'
+      ? '<span class="mat-tag mat-sol">Sololit</span>'
+      : d.mat === 'dtd_biela'
+      ? '<span class="mat-tag" style="background:#e8f0ff;color:#3a6ab0;border-color:#aac">DTD biela</span>'
+      : d.mat === 'dvierka'
+      ? '<span class="mat-tag" style="background:#f5ede0;color:#8a6030;border-color:#d4a87a">Čelo</span>'
+      : '<span class="mat-tag mat-dtd">DTD</span>';
+
+    // ABS notácia: abs:'oo' = obe hrany na oboch rozmeroch = // x //
+    let wLabel = Math.round(d.w);
+    let hLabel = Math.round(d.h);
+    if (d.abs === 'oo') {
+      wLabel = `${wLabel} //`;
+      hLabel = `${hLabel} //`;
+    } else if (d.abs === 'o2') {
+      wLabel = `${wLabel} /`;
+      hLabel = `${hLabel} //`;
+    } else if (d.abs === 'o') {
+      wLabel = `${wLabel} /`;
+    }
+    const dimLabel = `${wLabel} × ${hLabel} mm · ${d.ks}ks`;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${d.n}</td><td>${dimLabel}</td><td>${m2.toFixed(3)} m²</td><td>${tag}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Pánty / Merivobox
+  if (cab.hasDrawer) {
+    document.getElementById('ed-panty').textContent = `1× Merivobox M  ·  2× Merivobox E`;
+  } else if (cab.kat !== 'doska') {
+    const dvS = cab.s - 3;
+    const dvV = cab.v - 5;
+    const p = calcPanty(dvV, dvS);
+    document.getElementById('ed-panty').textContent = `${p.pocet} × Blum pánty  ·  ${p.kg} kg  ·  ${p.plocha} m²`;
+  } else {
+    document.getElementById('ed-panty').textContent = '—';
+  }
+}
+
+// ============================================================
+// KALKULÁCIA CELEJ STENY
+// ============================================================
+function calcAll() {
+  let totalSololit = 0;
+  let totalPanty = 0, totalNozicky = 0;
+
+  // ABS páska — spotreba podľa dekóru (dvierka = dookola, boxy = predná hrana)
+  const absByDekor = {};
+  cabinets.forEach(cab => {
+    getDiely(cab).forEach(d => {
+      if (!d.abs) return;
+      const dekorId = d.absDekor || cab.dvierka;
+      if (!dekorId) return;
+      // abs:'oo'= obvod, 'o2'= 1×dlhá+2×krátka, 'o'= 1×dlhá
+      const metres = d.abs === 'oo' ? 2*(d.w+d.h)/1000
+                   : d.abs === 'o2' ? (d.w + 2*d.h)/1000
+                   : d.w/1000;
+      if (!absByDekor[dekorId]) absByDekor[dekorId] = 0;
+      absByDekor[dekorId] += metres * (d.ks || 1);
+    });
+  });
+
+  // Zbieraj m² podľa dekóru (korpus a dvierka zvlášť)
+  // Štruktúra: { dekorId: { m2: float, wastePct: float } }
+  const dtdByDekor = {};
+
+  const addDekor = (dekorId, m2, waste) => {
+    if (!dtdByDekor[dekorId]) dtdByDekor[dekorId] = 0;
+    dtdByDekor[dekorId] += m2 * (1 + waste);
+  };
+
+  cabinets.forEach(cab => {
+    const diely = getDiely(cab);
+    diely.forEach(d => {
+      const m2 = (d.w/1000) * (d.h/1000) * d.ks;
+      if (d.mat === 'sololit') {
+        totalSololit += m2 * 1.05;
+      } else if (d.mat === 'dtd') {
+        addDekor(cab.korpus, m2, 0.10);
+      } else if (d.mat === 'dvierka') {
+        addDekor(cab.dvierka, m2, 0.05);
+      }
+      // dtd_biela sa počíta samostatne v Merivobox sekcii nižšie
+    });
+
+    // Pánty — len pre skrinky BEZ výsuvov
+    if (cab.kat !== 'doska' && cab.kat !== 'zastena' && !cab.hasDrawer) {
+      const dvS = cab.s - 3;
+      const dvV = cab.v - 5;
+      const p = calcPanty(dvV, dvS);
+      totalPanty += p.pocet;
+    }
+    if (cab.kat === 'spodna' || cab.kat === 'vysoka') totalNozicky += 4;
+  });
+
+  // --- Render dekórov ---
+  const list = document.getElementById('sum-dekor-list');
+  list.innerHTML = '';
+  let cenaDTD = 0;
+  let totalDTDm2 = 0;
+
+  // Zoraď dekóry — najprv tie čo sa používajú
+  const usedDekory = DEKORY.filter(d => dtdByDekor[d.id]);
+  usedDekory.forEach(dek => {
+    const m2 = dtdByDekor[dek.id];
+    const tabule = Math.ceil(m2 / TABULA_AREA);
+    const cena = tabule * dek.cena;
+    cenaDTD += cena;
+    totalDTDm2 += m2;
+
+    const absM = absByDekor[dek.id];
+    const absTxt = absM ? ` · ABS → ${absM.toFixed(1)} m` : '';
+
+    const row = document.createElement('div');
+    row.className = 'sum-dekor-row';
+    row.innerHTML = `
+      <span>
+        <span class="dekor-dot" style="background:${dek.farba}"></span>
+        ${dek.name}
+        <span class="dekor-sub">${m2.toFixed(2)} m² → ${tabule} tab.${absTxt}</span>
+      </span>
+      <span>${(cena).toFixed(2)} €</span>`;
+    list.appendChild(row);
+  });
+
+  if (usedDekory.length === 0) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:4px 0">—</div>';
+  }
+
+  // Sololit
+  const cenaSololit = Math.ceil(totalSololit / TABULA_AREA) * SOLOLIT_CENA;
+
+  // Pracovná doska — panel podľa typu (full=4100mm / half=2050mm)
+  let cenaDoska = 0, countDoska = 0;
+  let doskaSubText = '';
+  const doskaCabs = cabinets.filter(c => c.kat === 'doska');
+  doskaCabs.forEach(d => {
+    const isHalf = d.panelTyp === 'half' || d.s <= DOSKA_PANEL_H_HALF;
+    const panelDlzka = isHalf ? DOSKA_PANEL_H_HALF : DOSKA_PANEL_H_FULL;
+    const panelCena  = isHalf ? DOSKA_CENA_HALF    : DOSKA_CENA;
+    const panely = Math.ceil(d.s / panelDlzka);
+    countDoska += panely;
+    cenaDoska  += panely * panelCena;
+    doskaSubText = `${countDoska}× panel 650×${panelDlzka}`;
+  });
+
+  // Zástena — panel podľa typu
+  let cenaZastena = 0, countZastena = 0;
+  let zastenaSubText = '';
+  const zastenaCabs = cabinets.filter(c => c.kat === 'zastena');
+  zastenaCabs.forEach(z => {
+    const isHalf = z.panelTyp === 'half' || z.s <= DOSKA_PANEL_H_HALF;
+    const panelDlzka = isHalf ? DOSKA_PANEL_H_HALF : DOSKA_PANEL_H_FULL;
+    const panelCena  = isHalf ? ZASTENA_CENA_HALF  : ZASTENA_CENA;
+    const panely = Math.ceil(z.s / panelDlzka);
+    countZastena += panely;
+    cenaZastena  += panely * panelCena;
+    zastenaSubText = `${countZastena}× panel 650×${panelDlzka}`;
+  });
+
+  // Merivobox kovanie
+  let totalMerivoM = 0, totalMerivoE = 0;
+  let areaDtdBiela = 0;
+  cabinets.forEach(cab => {
+    if (!cab.hasDrawer) return;
+    totalMerivoM += 1;
+    totalMerivoE += 2;
+    const zasS = (cab.s - 2*D - 51) / 1000;
+    const zasH = (cab.h - 51) / 1000;
+    areaDtdBiela += zasS * zasH * 3;
+    areaDtdBiela += zasS * (83/1000) * 1;
+    areaDtdBiela += zasS * (184/1000) * 2;
+  });
+  const cenaMerivoM = totalMerivoM * MERIVOBOX_M_CENA;
+  const cenaMerivoE = totalMerivoE * MERIVOBOX_E_CENA;
+  const cenaDtdBiela = Math.ceil(areaDtdBiela * (1.10) / TABULA_AREA) * 56.79; // W960SM cena
+
+  const cenaPanty = totalPanty * PANTY_CENA;
+  const cenaNozicky = totalNozicky * NOZICKY_CENA;
+  const cenaKovanie = cenaPanty + cenaNozicky + cenaMerivoM + cenaMerivoE;
+  const cenaMatSpolu = cenaDTD + cenaSololit + cenaDtdBiela;
+  const cenaPorez    = cenaMatSpolu;
+  const naklady = cenaMatSpolu + cenaPorez + cenaDoska + cenaZastena + cenaKovanie;
+  const marzaAmt = naklady * (marza/100);
+  const total = naklady + marzaAmt;
+  const vat = total * 1.20;
+  const f = n => n.toFixed(2) + ' €';
+
+  // Sololit
+  const solTab = Math.ceil(totalSololit / TABULA_AREA);
+  const solRow = document.getElementById('sum-sol-row');
+  if (solRow) solRow.style.display = totalSololit > 0 ? '' : 'none';
+  const solSubEl = document.getElementById('sum-sol-sub');
+  if (solSubEl) solSubEl.textContent = totalSololit > 0 ? `${totalSololit.toFixed(2)} m² → ${solTab} tab.` : '';
+  document.getElementById('sum-sol').textContent = totalSololit > 0 ? f(cenaSololit) : '—';
+
+  // Pracovná doska
+  const doskaRow = document.getElementById('sum-doska-row');
+  if (doskaRow) doskaRow.style.display = countDoska > 0 ? '' : 'none';
+  const doskaSub = document.getElementById('sum-doska-sub');
+  if (doskaSub) doskaSub.textContent = doskaSubText;
+  const doskaEl = document.getElementById('sum-doska');
+  if (doskaEl) doskaEl.textContent = countDoska > 0 ? f(cenaDoska) : '—';
+
+  // Zástena
+  const zastenaRow = document.getElementById('sum-zastena-row');
+  if (zastenaRow) zastenaRow.style.display = countZastena > 0 ? '' : 'none';
+  const zastenaSub = document.getElementById('sum-zastena-sub');
+  if (zastenaSub) zastenaSub.textContent = zastenaSubText;
+  const zastenaEl = document.getElementById('sum-zastena');
+  if (zastenaEl) zastenaEl.textContent = countZastena > 0 ? f(cenaZastena) : '—';
+
+  // DTD biela (zásuvky)
+  const dtdBielaTabul = Math.ceil(areaDtdBiela * 1.10 / TABULA_AREA);
+  const dtdBielaRow = document.getElementById('sum-dtd-biela-row');
+  if (dtdBielaRow) dtdBielaRow.style.display = areaDtdBiela > 0 ? '' : 'none';
+  const dtdBielaSub = document.getElementById('sum-dtd-biela-sub');
+  if (dtdBielaSub) dtdBielaSub.textContent = areaDtdBiela > 0 ? `${areaDtdBiela.toFixed(2)} m² → ${dtdBielaTabul} tab.` : '';
+  const dtdBielaEl = document.getElementById('sum-dtd-biela');
+  if (dtdBielaEl) dtdBielaEl.textContent = areaDtdBiela > 0 ? f(cenaDtdBiela) : '—';
+
+  // Merivobox kovanie
+  const merivoMRow = document.getElementById('sum-merivom-row');
+  const merivoERow = document.getElementById('sum-merivoe-row');
+  if (merivoMRow) merivoMRow.style.display = totalMerivoM > 0 ? '' : 'none';
+  if (merivoERow) merivoERow.style.display = totalMerivoE > 0 ? '' : 'none';
+  const merivoMSub = document.getElementById('sum-merivom-sub');
+  const merivoESub = document.getElementById('sum-merivoe-sub');
+  if (merivoMSub) merivoMSub.textContent = totalMerivoM > 0 ? `${totalMerivoM}× @ ${MERIVOBOX_M_CENA.toFixed(2)} €` : '';
+  if (merivoESub) merivoESub.textContent = totalMerivoE > 0 ? `${totalMerivoE}× @ ${MERIVOBOX_E_CENA.toFixed(2)} €` : '';
+  const merivoMEl = document.getElementById('sum-merivom');
+  const merivoEEl = document.getElementById('sum-merivoe');
+  if (merivoMEl) merivoMEl.textContent = totalMerivoM > 0 ? f(cenaMerivoM) : '—';
+  if (merivoEEl) merivoEEl.textContent = totalMerivoE > 0 ? f(cenaMerivoE) : '—';
+
+  // Porez a hranovanie = kopíruje cenu plošného materiálu
+  const porezEl = document.getElementById('sum-porez');
+  if (porezEl) porezEl.textContent = f(cenaPorez);
+
+  document.getElementById('sum-kov-total').textContent   = f(cenaKovanie);
+  document.getElementById('sum-mat-total').textContent   = f(cenaMatSpolu);
+  document.getElementById('sum-porez-total').textContent = f(cenaDoska + cenaZastena);
+
+  // Kovanie — každé zvlášť
+  const pantyRow = document.getElementById('sum-panty-row');
+  if (pantyRow) pantyRow.style.display = totalPanty > 0 ? '' : 'none';
+  const pantySub = document.getElementById('sum-panty-sub');
+  if (pantySub) pantySub.textContent = `${totalPanty}× @ ${PANTY_CENA.toFixed(2)} €`;
+  const pantyEl = document.getElementById('sum-panty');
+  if (pantyEl) pantyEl.textContent = totalPanty > 0 ? f(cenaPanty) : '—';
+
+  const nozickyRow = document.getElementById('sum-nozicky-row');
+  if (nozickyRow) nozickyRow.style.display = totalNozicky > 0 ? '' : 'none';
+  const nozickySub = document.getElementById('sum-nozicky-sub');
+  if (nozickySub) nozickySub.textContent = `${totalNozicky}× @ ${NOZICKY_CENA.toFixed(2)} €`;
+  const nozickyEl = document.getElementById('sum-nozicky');
+  if (nozickyEl) nozickyEl.textContent = totalNozicky > 0 ? f(cenaNozicky) : '—';
+
+  document.getElementById('sum-nak').textContent = f(naklady);
+  document.getElementById('sum-total').textContent = f(total);
+  document.getElementById('sum-vat').textContent = `s DPH 20%: ${f(vat)}`;
+}
+
+function updateMarza(val) {
+  marza = parseInt(val);
+  document.getElementById('marza-pct').textContent = val + '%';
+  calcAll();
+}
+
+// ============================================================
+// ZOOM & UTILS
+// ============================================================
+function zoomIn()  { zoom = Math.min(2.5, zoom + 0.2); redraw(); }
+function zoomOut() { zoom = Math.max(0.4, zoom - 0.2); redraw(); }
+function resetView() { zoom = 1.0; redraw(); }
+function clearWall() {
+  if (walls[currentWall].cabinets.length && !confirm('Vymazať všetky skrinky zo steny?')) return;
+  walls[currentWall].cabinets = [];
+  cabinets = walls[currentWall].cabinets;
+  selectedId = null;
+  hideEditor(); redraw(); calcAll();
+  document.getElementById('drop-hint').style.opacity = '1';
+}
+
+function shadeClr(hex, pct) {
+  let c = hex.replace('#','');
+  if (c.length === 3) c = c.split('').map(x=>x+x).join('');
+  const num = parseInt(c, 16);
+  const r = Math.min(255, Math.max(0, (num>>16)+pct));
+  const g = Math.min(255, Math.max(0, ((num>>8)&0xff)+pct));
+  const b = Math.min(255, Math.max(0, (num&0xff)+pct));
+  return `rgb(${r},${g},${b})`;
+}
+
+// ============================================================
+// INIT
+// ============================================================
+updateWallUI();
+redraw();
+calcAll();
+
+// Redraw pri zmene veľkosti
+new ResizeObserver(() => { redraw(); }).observe(document.getElementById('canvas-wrap'));
+
+// Knižnica — náhľady skriniek
+// ── Knižnica — rozklikávacie okná ──
+function toggleRoom(id) {
+  const el = document.getElementById('room-' + id);
+  el.classList.toggle('open');
+}
+function toggleSub(id) {
+  const el = document.getElementById('sub-' + id);
+  el.classList.toggle('open');
+  // Preresuj náhľady po otvorení
+  if (el.classList.contains('open')) {
+    el.querySelectorAll('.lib-preview').forEach(cv => drawLibPreview(cv, cv.dataset.type));
+  }
+}
+
+function drawLibPreview(canvas, type) {
+  const tpl = CABINET_TEMPLATES[type];
+  if (!tpl) return;
+  const c = canvas.getContext('2d');
+  const cw = canvas.width, ch = canvas.height;
+  c.clearRect(0, 0, cw, ch);
+
+  // Background
+  c.fillStyle = '#f5f2ec';
+  c.fillRect(0, 0, cw, ch);
+
+  const kClr = '#f8f6f2';
+  const dClr = '#b8956a'; // Hamilton
+
+  // Vypočítaj scale aby sa skrinka zmestila do 44x44
+  const maxW = tpl.s, maxH = tpl.v;
+  const aspect = maxW / maxH;
+  let W, H;
+  if (aspect > 1) { W = 30; H = W / aspect; }
+  else { H = 30; W = H * aspect; }
+  W = Math.max(W, 6); H = Math.max(H, 4);
+
+  const dep = W * 0.28;
+  const ddx = dep * Math.cos(Math.PI/6);
+  const ddy = -dep * Math.sin(Math.PI/6);
+
+  // Pozícia — vycentrované, posunuté aby sa zmestila hĺbka
+  const x0 = (cw - W - ddx) / 2;
+  const y0 = (ch - H + ddy) / 2 - ddy;
+
+  function shade(hex, amt) { return shadeClr(hex, amt); }
+
+  // Zadná plocha
+  c.fillStyle = shade(kClr, -35);
+  c.beginPath();
+  c.moveTo(x0+ddx, y0+ddy); c.lineTo(x0+W+ddx, y0+ddy);
+  c.lineTo(x0+W+ddx, y0+H+ddy); c.lineTo(x0+ddx, y0+H+ddy);
+  c.closePath(); c.fill();
+
+  // Horná plocha
+  c.fillStyle = shade(kClr, -12);
+  c.beginPath();
+  c.moveTo(x0, y0); c.lineTo(x0+ddx, y0+ddy);
+  c.lineTo(x0+W+ddx, y0+ddy); c.lineTo(x0+W, y0);
+  c.closePath(); c.fill();
+
+  // Pravá bočná
+  c.fillStyle = shade(kClr, -22);
+  c.beginPath();
+  c.moveTo(x0+W, y0); c.lineTo(x0+W+ddx, y0+ddy);
+  c.lineTo(x0+W+ddx, y0+H+ddy); c.lineTo(x0+W, y0+H);
+  c.closePath(); c.fill();
+
+  // Predná plocha korpusu
+  c.fillStyle = kClr;
+  c.strokeStyle = '#c8b898'; c.lineWidth = 0.8;
+  c.beginPath(); c.rect(x0, y0, W, H); c.fill(); c.stroke();
+
+  if (tpl.kat !== 'doska') {
+    // Dvierka
+    c.fillStyle = dClr;
+    c.strokeStyle = '#8a6a44'; c.lineWidth = 0.8;
+    c.beginPath(); c.rect(x0-1, y0, W+2, H); c.fill(); c.stroke();
+
+    // Horná hrana dvierok
+    const dd2 = 1.5, ddx2 = dd2*Math.cos(Math.PI/6), ddy2 = -dd2*Math.sin(Math.PI/6);
+    c.fillStyle = shade(dClr, -12);
+    c.beginPath();
+    c.moveTo(x0-1, y0); c.lineTo(x0-1+ddx2, y0+ddy2);
+    c.lineTo(x0+W+1+ddx2, y0+ddy2); c.lineTo(x0+W+1, y0);
+    c.closePath(); c.fill();
+
+    // Úchytka
+    c.fillStyle = '#aaa';
+    c.beginPath();
+    c.roundRect(x0 + W - 5, y0 + H*0.38, 2.5, H*0.24, 1);
+    c.fill();
+
+    // Spodná skriňa — 2 police (viditeľné cez priehľadné dvierka)
+    if (tpl.kat === 'spodna') {
+      c.save();
+      c.globalAlpha = 0.18; // priesvitné dvierka
+      c.fillStyle = dClr;
+      c.fillRect(x0-1, y0, W+2, H);
+      c.restore();
+      // 2 police
+      c.strokeStyle = 'rgba(200,180,150,0.7)'; c.lineWidth = 1;
+      [0.33, 0.66].forEach(f => {
+        const py = y0 + H * f;
+        c.beginPath(); c.moveTo(x0+1, py); c.lineTo(x0+W-1, py); c.stroke();
+      });
+      // Pánty Blum — 2 ks
+      c.fillStyle = '#b0a890';
+      [0.22, 0.78].forEach(f => {
+        const py = y0 + H * f;
+        c.beginPath(); c.arc(x0 + 4, py, 2, 0, Math.PI*2); c.fill();
+      });
+    }
+  } else {
+    // Doska — hnedý pás
+    c.fillStyle = '#c8a06a';
+    c.fillRect(x0, y0, W, H);
+    c.strokeStyle = '#a07040'; c.lineWidth = 0.5;
+    c.strokeRect(x0, y0, W, H);
+  }
+
+  // Nožičky
+  if (tpl.kat === 'spodna' || tpl.kat === 'vysoka') {
+    c.fillStyle = '#bbb';
+    c.fillRect(x0+2, y0+H, 2, 4);
+    c.fillRect(x0+W-4, y0+H, 2, 4);
+  }
+}
+
+// Vykresli všetky náhľady
+document.querySelectorAll('.lib-preview').forEach(cv => {
+  drawLibPreview(cv, cv.dataset.type);
+});
+
+</script>
+</body>
+</html>
